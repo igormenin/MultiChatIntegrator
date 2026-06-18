@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>MultiChat Integrator</title>
+    <meta
+      name="description"
+      content="Agregador de chats em tempo real para YouTube, Twitch e Kick com suporte a overlay transparente."
+    />
+    <meta property="og:title" content="MultiChat Integrator" />
+    <meta
+      property="og:description"
+      content="Agregador de chats em tempo real para YouTube, Twitch e Kick com suporte a overlay transparente."
+    />
+    <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https://*.ggpht.com https://*.jtvnw.net https://*.googleusercontent.com https://static-cdn.jtvnw.net https://*.youtube.com; font-src 'self' https://fonts.gstatic.com"
+    />
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

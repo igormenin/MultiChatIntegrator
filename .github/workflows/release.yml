@@ -1,0 +1,41 @@
+name: Release Application
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Update package.json version from Git Tag
+        shell: bash
+        run: |
+          # Extrai a versão limpando o prefixo 'v' (ex: v1.0.2 -> 1.0.2)
+          TAG_NAME="${{ github.ref_name }}"
+          VERSION="${TAG_NAME#v}"
+          echo "Disparado para tag: $TAG_NAME"
+          echo "Injetando versão no package.json: $VERSION"
+          npm version $VERSION --no-git-tag-version
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build and Publish Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run build:win -- --publish always
