@@ -1,4 +1,4 @@
-# temp-scaffold
+# MultiChatIntegrator
 
 An Electron application with React and TypeScript
 
