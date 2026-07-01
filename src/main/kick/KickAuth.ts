@@ -174,25 +174,54 @@ export async function startKickAuthFlow(store: AnyStore): Promise<KickTokens> {
           })
           if (userRes.ok) {
             const userData = (await userRes.json()) as {
-              data?: {
-                id?: string | number
-                username?: string
-                display_name?: string
+              data?:
+                | {
+                    id?: string | number
+                    user_id?: string | number
+                    username?: string
+                    name?: string
+                    display_name?: string
+                    login?: string
+                  }
+                | Array<{
+                    id?: string | number
+                    user_id?: string | number
+                    username?: string
+                    name?: string
+                    display_name?: string
+                    login?: string
+                  }>
+              id?: string | number
+              user_id?: string | number
+              username?: string
+              name?: string
+              display_name?: string
+              login?: string
+            }
+
+            let userObj: {
+              id?: string | number
+              user_id?: string | number
+              username?: string
+              name?: string
+              display_name?: string
+              login?: string
+            } = {}
+
+            if (userData.data) {
+              if (Array.isArray(userData.data)) {
+                userObj = userData.data[0] || {}
+              } else {
+                userObj = userData.data
               }
-              id?: string | number
-              username?: string
-              name?: string
-              display_name?: string
+            } else {
+              userObj = userData
             }
-            // Mapear flexivelmente se for envelopado em "data" ou direto no root
-            const userObj = (userData.data || userData) as {
-              id?: string | number
-              username?: string
-              name?: string
-              display_name?: string
-            }
-            tokens.channelId = userObj.id ? String(userObj.id) : undefined
-            tokens.username = userObj.username || userObj.name || userObj.display_name
+
+            const rawId = userObj.id || userObj.user_id
+            tokens.channelId = rawId ? String(rawId) : undefined
+            tokens.username =
+              userObj.username || userObj.name || userObj.display_name || userObj.login
           }
         } catch (err) {
           console.warn('[Kick Auth] Erro ao obter detalhes do usuário:', err)
