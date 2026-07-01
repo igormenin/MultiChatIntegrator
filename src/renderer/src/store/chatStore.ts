@@ -9,6 +9,12 @@ export interface QuickMessage {
   text: string
 }
 
+export interface MutedUser {
+  id: string
+  username: string
+  platform: PlatformName
+}
+
 interface ChatState {
   messages: ChatMessage[]
   connections: Record<PlatformName, PlatformConnection>
@@ -16,6 +22,7 @@ interface ChatState {
   activeFilters: Record<PlatformName, boolean>
   isOverlayMode: boolean
   quickMessages: QuickMessage[]
+  mutedUsers: MutedUser[]
 
   // Actions
   addMessage: (message: ChatMessage) => void
@@ -32,6 +39,9 @@ interface ChatState {
   setQuickMessages: (messages: QuickMessage[]) => void
   addQuickMessage: (message: QuickMessage) => void
   removeQuickMessage: (id: string) => void
+  setMutedUsers: (users: MutedUser[]) => void
+  addMutedUser: (user: MutedUser) => void
+  removeMutedUser: (id: string) => void
 }
 
 const MAX_MESSAGES = 500
@@ -61,6 +71,7 @@ export const useChatStore = create<ChatState>((set) => ({
   activeFilters: initialFilters,
   isOverlayMode: false,
   quickMessages: [],
+  mutedUsers: [],
 
   addMessage: (message) =>
     set((state) => {
@@ -119,5 +130,17 @@ export const useChatStore = create<ChatState>((set) => ({
   removeQuickMessage: (id) =>
     set((state) => ({
       quickMessages: state.quickMessages.filter((m) => m.id !== id)
+    })),
+
+  setMutedUsers: (users) => set({ mutedUsers: users }),
+
+  addMutedUser: (user) =>
+    set((state) => ({
+      mutedUsers: [...state.mutedUsers, user]
+    })),
+
+  removeMutedUser: (id) =>
+    set((state) => ({
+      mutedUsers: state.mutedUsers.filter((u) => u.id !== id)
     }))
 }))

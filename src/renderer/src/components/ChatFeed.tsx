@@ -5,13 +5,25 @@ import { ChatMessage } from './ChatMessage'
 import logoIcon from '../assets/icon.png'
 
 export const ChatFeed: React.FC = () => {
-  const { messages, activeFilters } = useChatStore()
+  const { messages, activeFilters, mutedUsers } = useChatStore()
   const virtuosoRef = useRef<VirtuosoHandle>(null)
   const [isAtBottom, setIsAtBottom] = useState(true)
   const [messagesCountAtBottomLeave, setMessagesCountAtBottomLeave] = useState(0)
 
-  // Filtrar as mensagens de acordo com os filtros ativos na Sidebar
-  const filteredMessages = messages.filter((msg) => activeFilters[msg.platform])
+  // Filtrar as mensagens de acordo com os filtros ativos na Sidebar e usuários ocultados
+  const filteredMessages = messages.filter((msg) => {
+    if (!activeFilters[msg.platform]) return false
+
+    const isUserMuted = mutedUsers.some((muted) => {
+      const matchUsername =
+        muted.username.toLowerCase().trim() === msg.username.toLowerCase().trim() ||
+        muted.username.toLowerCase().trim() === msg.displayName.toLowerCase().trim()
+      const matchPlatform = muted.platform === msg.platform
+      return matchUsername && matchPlatform
+    })
+
+    return !isUserMuted
+  })
 
   // Computar mensagens recebidas desde que o usuário subiu a tela
   const newMessagesCount = isAtBottom

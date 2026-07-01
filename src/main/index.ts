@@ -35,7 +35,8 @@ const store = new Store({
     saveTwitchChannel: false,
     saveYoutubeVideoId: false,
     saveKickSlug: false,
-    quickMessages: []
+    quickMessages: [],
+    mutedUsers: []
   }
 })
 
@@ -575,6 +576,20 @@ app.whenReady().then(() => {
     'quickMessages:save',
     (_event, messages: { id: string; label: string; text: string }[]) => {
       store.set('quickMessages', messages)
+      return { success: true }
+    }
+  )
+
+  // 4.8 Usuários ocultados — obter
+  ipcMain.handle('mutedUsers:get', () => {
+    return store.get('mutedUsers') as { id: string; username: string; platform: string }[]
+  })
+
+  // 4.9 Usuários ocultados — salvar
+  ipcMain.handle(
+    'mutedUsers:save',
+    (_event, mutedUsers: { id: string; username: string; platform: string }[]) => {
+      store.set('mutedUsers', mutedUsers)
       return { success: true }
     }
   )

@@ -4,12 +4,14 @@ import { TopBar } from './components/TopBar'
 import { ChatFeed } from './components/ChatFeed'
 import { ChatComposer } from './components/ChatComposer'
 import { SettingsPanel } from './components/SettingsPanel'
+import { MutedUsersModal } from './components/MutedUsersModal'
 import { useChatStore } from './store/chatStore'
 
 function App(): React.JSX.Element {
   const { addMessage, updateConnectionStatus, updateStats, isOverlayMode, setOverlayMode } =
     useChatStore()
   const [isSettingsOpen, setIsSettingsOpen] = useState(true)
+  const [isMutedUsersOpen, setIsMutedUsersOpen] = useState(false)
 
   // Estados para o Auto-Updater
   const [updateStatus, setUpdateStatus] = useState<'idle' | 'downloading' | 'downloaded' | 'error'>(
@@ -22,6 +24,11 @@ function App(): React.JSX.Element {
 
   // Registrar listeners IPC ao montar o app
   useEffect(() => {
+    // 0. Carregar usuários ocultados inicialmente
+    void window.api.getMutedUsers().then((users) => {
+      useChatStore.getState().setMutedUsers(users || [])
+    })
+
     // 1. Ouvir mensagens de chat vindo do main process
     const cleanupChatMessage = window.api.onChatMessage((message) => {
       addMessage(message)
@@ -132,6 +139,8 @@ function App(): React.JSX.Element {
       <Sidebar
         isSettingsOpen={isSettingsOpen}
         onToggleSettings={() => setIsSettingsOpen(!isSettingsOpen)}
+        isMutedUsersOpen={isMutedUsersOpen}
+        onToggleMutedUsers={() => setIsMutedUsersOpen(!isMutedUsersOpen)}
       />
 
       {/* Área central principal */}
@@ -159,6 +168,9 @@ function App(): React.JSX.Element {
         onMouseDown={(e) => handleResizeMouseDown(e, 'horizontal')}
       />
       <div className="resize-handle-corner" onMouseDown={(e) => handleResizeMouseDown(e, 'both')} />
+
+      {/* Modal de gerenciamento de usuários ocultados */}
+      {isMutedUsersOpen && <MutedUsersModal onClose={() => setIsMutedUsersOpen(false)} />}
 
       {/* Banner de Atualização Automática */}
       {showUpdateBanner && (

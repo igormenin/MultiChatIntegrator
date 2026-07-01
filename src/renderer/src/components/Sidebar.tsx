@@ -6,9 +6,16 @@ import logoIcon from '../assets/icon.png'
 interface SidebarProps {
   isSettingsOpen: boolean
   onToggleSettings: () => void
+  isMutedUsersOpen: boolean
+  onToggleMutedUsers: () => void
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ isSettingsOpen, onToggleSettings }) => {
+export const Sidebar: React.FC<SidebarProps> = ({
+  isSettingsOpen,
+  onToggleSettings,
+  isMutedUsersOpen,
+  onToggleMutedUsers
+}) => {
   const { connections, activeFilters, toggleFilter, updateConnectionStatus } = useChatStore()
 
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false)
@@ -267,6 +274,43 @@ export const Sidebar: React.FC<SidebarProps> = ({ isSettingsOpen, onToggleSettin
           >
             <path d="M18.36 6.64a9 9 0 1 1-12.73 0" />
             <line x1="12" y1="2" x2="12" y2="12" />
+          </svg>
+        </button>
+
+        {/* Bottom User Filter (Mute) Button */}
+        <button
+          onClick={onToggleMutedUsers}
+          className="tooltip-right"
+          data-tooltip="Usuários Ocultados"
+          style={{
+            width: '42px',
+            height: '42px',
+            backgroundColor: isMutedUsersOpen ? 'rgba(255, 255, 255, 0.04)' : 'transparent',
+            border: '1px solid',
+            borderColor: isMutedUsersOpen ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
+            borderRadius: '8px',
+            color: isMutedUsersOpen ? 'var(--color-kick)' : 'var(--text-secondary)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease'
+          }}
+        >
+          <svg
+            viewBox="0 0 24 24"
+            width="20"
+            height="20"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle cx="8.5" cy="7" r="4" />
+            <line x1="18" y1="8" x2="23" y2="13" />
+            <line x1="23" y1="8" x2="18" y2="13" />
           </svg>
         </button>
 

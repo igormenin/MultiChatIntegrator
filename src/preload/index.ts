@@ -139,6 +139,9 @@ const api = {
   getQuickMessages: () => ipcRenderer.invoke('quickMessages:get'),
   saveQuickMessages: (messages: { id: string; label: string; text: string }[]) =>
     ipcRenderer.invoke('quickMessages:save', messages),
+  getMutedUsers: () => ipcRenderer.invoke('mutedUsers:get'),
+  saveMutedUsers: (mutedUsers: { id: string; username: string; platform: PlatformName }[]) =>
+    ipcRenderer.invoke('mutedUsers:save', mutedUsers),
   getAppVersion: () => ipcRenderer.invoke('app:version'),
   checkForUpdates: () => ipcRenderer.invoke('update:check'),
   installUpdate: () => ipcRenderer.invoke('update:install')

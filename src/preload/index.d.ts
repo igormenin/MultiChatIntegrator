@@ -65,6 +65,10 @@ interface CustomAPI {
   saveQuickMessages: (
     messages: { id: string; label: string; text: string }[]
   ) => Promise<{ success: boolean }>
+  getMutedUsers: () => Promise<{ id: string; username: string; platform: PlatformName }[]>
+  saveMutedUsers: (
+    mutedUsers: { id: string; username: string; platform: PlatformName }[]
+  ) => Promise<{ success: boolean }>
   getAppVersion: () => Promise<string>
   checkForUpdates: () => Promise<{ success: boolean; error?: string; result?: unknown }>
   installUpdate: () => Promise<void>
