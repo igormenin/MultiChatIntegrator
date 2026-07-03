@@ -312,10 +312,6 @@ export class YouTubeConnector {
         this.basePollingInterval,
         this.currentPollingInterval - POLLING_DECREMENT
       )
-    }
-
-    // Trava de segurança garantindo que nunca faremos polls mais rápidos do que a API recomenda no momento (basePollingInterval)
-    this.currentPollingInterval = Math.max(this.basePollingInterval, this.currentPollingInterval)
 
       // Processar e emitir mensagens (Apenas se não for a primeira chamada para evitar flooding de histórico)
       if (this.nextPageToken) {
@@ -325,6 +321,9 @@ export class YouTubeConnector {
         }
       }
     }
+
+    // Trava de segurança garantindo que nunca faremos polls mais rápidos do que a API recomenda no momento (basePollingInterval)
+    this.currentPollingInterval = Math.max(this.basePollingInterval, this.currentPollingInterval)
   }
 
   // ----------------------------------------------------------------
