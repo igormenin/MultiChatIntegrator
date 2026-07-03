@@ -44,6 +44,20 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen }) => {
   const [saveYoutubeVideoId, setSaveYoutubeVideoId] = useState(false)
   const [saveKickSlug, setSaveKickSlug] = useState(false)
 
+  // Logs
+  const [showLogs, setShowLogs] = useState(false)
+  const [logsContent, setLogsContent] = useState<string[]>([])
+
+  const loadLogs = async (): Promise<void> => {
+    try {
+      const logs = await window.api.getLogs()
+      setLogsContent(logs)
+      setShowLogs(true)
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
   // Verificar status de auth do Twitch ao montar
   useEffect(() => {
     // Carregar configurações salvas no startup
@@ -152,9 +166,9 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen }) => {
     setYoutubeAuthError('')
     try {
       const result = await window.api.youtubeAuthStart()
-      if (result.success && result.login) {
+      if (result.success) {
         setYoutubeAuthStep('authenticated')
-        setYoutubeLogin(result.login)
+        setYoutubeLogin(result.login || 'Usuário YouTube')
       } else {
         setYoutubeAuthStep('idle')
         setYoutubeAuthError(result.error || 'Falha ao iniciar fluxo')
@@ -279,6 +293,38 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen }) => {
       </div>
 
       <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        {/* Botão de Limpeza Global */}
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <button
+            onClick={async () => {
+              if (
+                confirm(
+                  'Tem certeza que deseja limpar todas as configurações de login salvas? Isso desconectará todas as plataformas.'
+                )
+              ) {
+                await Promise.all([handleTwitchLogout(), handleYoutubeLogout(), handleKickLogout()])
+              }
+            }}
+            style={{
+              width: '80%',
+              height: '36px',
+              backgroundColor: 'rgba(239, 68, 68, 0.1)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              color: '#EF4444',
+              fontSize: '13px',
+              fontWeight: 600,
+              borderRadius: '6px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              transition: 'all 0.2s'
+            }}
+          >
+            Limpar Todos os Logins Salvos
+          </button>
+        </div>
         {/* TWITCH CARD */}
         <div
           style={{
@@ -1063,6 +1109,114 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen }) => {
           )}
         </div>
       </div>
+
+      {/* Botão de Logs */}
+      <div
+        style={{ marginTop: 'auto', paddingTop: '16px', display: 'flex', justifyContent: 'center' }}
+      >
+        <button
+          onClick={loadLogs}
+          title="Ver Logs"
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'var(--text-secondary)',
+            cursor: 'pointer',
+            padding: '8px',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.2s'
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)')}
+          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+        >
+          <svg
+            viewBox="0 0 24 24"
+            width="18"
+            height="18"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="16" y1="13" x2="8" y2="13" />
+            <line x1="16" y1="17" x2="8" y2="17" />
+            <polyline points="10 9 9 9 8 9" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Modal de Logs */}
+      {showLogs && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.8)',
+            zIndex: 100,
+            display: 'flex',
+            flexDirection: 'column',
+            padding: '24px'
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '16px'
+            }}
+          >
+            <h2 style={{ color: '#fff', fontSize: '16px', margin: 0 }}>System Logs</h2>
+            <button
+              onClick={() => setShowLogs(false)}
+              style={{
+                background: 'rgba(255,255,255,0.1)',
+                border: 'none',
+                color: '#fff',
+                padding: '6px 12px',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              Fechar
+            </button>
+          </div>
+          <div
+            style={{
+              flex: 1,
+              backgroundColor: '#1e1e1e',
+              border: '1px solid #333',
+              borderRadius: '6px',
+              padding: '12px',
+              overflowY: 'auto',
+              fontFamily: 'monospace',
+              fontSize: '11px',
+              color: '#d4d4d4',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-all'
+            }}
+          >
+            {logsContent.length > 0 ? (
+              logsContent.map((log, idx) => (
+                <div key={idx} style={{ marginBottom: '4px' }}>
+                  {log}
+                </div>
+              ))
+            ) : (
+              <div style={{ color: '#888' }}>Nenhum log disponível.</div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

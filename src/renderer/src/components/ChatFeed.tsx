@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react'
+import React, { useRef, useState, useEffect } from 'react'
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso'
 import { useChatStore } from '../store/chatStore'
 import { ChatMessage } from './ChatMessage'
@@ -40,6 +40,30 @@ export const ChatFeed: React.FC = () => {
       setIsAtBottom(true)
     }
   }
+
+  const isInitialLoad = useRef(true)
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined
+
+    if (filteredMessages.length === 0) {
+      isInitialLoad.current = true
+    } else if (filteredMessages.length > 0 && virtuosoRef.current && isInitialLoad.current) {
+      // Pequeno atraso para garantir que as imagens/mensagens renderizaram e adquiriram altura
+      timer = setTimeout(() => {
+        virtuosoRef.current?.scrollToIndex({
+          index: filteredMessages.length - 1,
+          align: 'end',
+          behavior: 'auto'
+        })
+        isInitialLoad.current = false
+      }, 150)
+    }
+
+    return () => {
+      if (timer) clearTimeout(timer)
+    }
+  }, [filteredMessages.length])
 
   return (
     <div
@@ -91,7 +115,8 @@ export const ChatFeed: React.FC = () => {
         <Virtuoso
           ref={virtuosoRef}
           data={filteredMessages}
-          followOutput={isAtBottom ? 'smooth' : false}
+          initialTopMostItemIndex={filteredMessages.length - 1}
+          followOutput="smooth"
           totalCount={filteredMessages.length}
           itemContent={(_index, message) => <ChatMessage key={message.id} message={message} />}
           style={{ height: '100%', width: '100%', backgroundColor: 'transparent', zIndex: 1 }}

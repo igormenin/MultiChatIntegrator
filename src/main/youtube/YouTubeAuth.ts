@@ -14,7 +14,8 @@ const REVOKE_URL = 'https://oauth2.googleapis.com/revoke'
 
 const SCOPES = [
   'https://www.googleapis.com/auth/youtube.readonly',
-  'https://www.googleapis.com/auth/youtube.force-ssl'
+  'https://www.googleapis.com/auth/youtube.force-ssl',
+  'https://www.googleapis.com/auth/userinfo.profile'
 ].join(' ')
 
 const PORT = 21338
@@ -141,8 +142,9 @@ export async function startYouTubeAuthFlow(store: AnyStore): Promise<YouTubeToke
 
         // Buscar detalhes do canal do streamer
         try {
+          const API_KEY = import.meta.env.MAIN_VITE_YOUTUBE_API_KEY || ''
           const channelRes = await net.fetch(
-            'https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true',
+            `https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true&key=${API_KEY}`,
             {
               headers: { Authorization: `Bearer ${tokens.accessToken}` }
             }
@@ -154,10 +156,38 @@ export async function startYouTubeAuthFlow(store: AnyStore): Promise<YouTubeToke
             if (channelData.items && channelData.items.length > 0) {
               tokens.channelId = channelData.items[0].id
               tokens.channelTitle = channelData.items[0].snippet.title
+            } else {
+              console.warn(
+                '[YouTube Auth] Canal não encontrado (items vazio). O usuário possui um canal criado?'
+              )
             }
+          } else {
+            const errText = await channelRes.text()
+            console.error('[YouTube Auth] Falha na API de channels:', channelRes.status, errText)
           }
         } catch (err) {
-          console.warn('[YouTube Auth] Erro ao obter detalhes do canal:', err)
+          console.warn('[YouTube Auth] Erro de rede ao obter detalhes do canal:', err)
+        }
+
+        // Se não conseguiu pegar o nome do canal (usuário sem canal), tenta pegar do perfil Google
+        if (!tokens.channelTitle) {
+          try {
+            const profileRes = await net.fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+              headers: { Authorization: `Bearer ${tokens.accessToken}` }
+            })
+            if (profileRes.ok) {
+              const profileData = (await profileRes.json()) as { name?: string }
+              if (profileData.name) {
+                tokens.channelTitle = profileData.name
+              }
+            }
+          } catch (profileErr) {
+            console.warn('[YouTube Auth] Erro ao buscar userinfo:', profileErr)
+          }
+        }
+
+        if (!tokens.channelTitle) {
+          tokens.channelTitle = 'Streamer YouTube'
         }
 
         // Salvar tokens

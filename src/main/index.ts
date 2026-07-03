@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, Tray, Menu, nativeImage } from 'electron'
+import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import Store from 'electron-store'
@@ -25,6 +25,39 @@ import {
 } from './kick/KickAuth'
 import { KickConnector } from './kick/KickConnector'
 
+// Sistema de Logs
+const appLogs: string[] = []
+const MAX_LOGS = 500
+
+function addLog(level: string, ...args: unknown[]): void {
+  const timestamp = new Date().toISOString()
+  const message = args.map((a) => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' ')
+  const logLine = `[${timestamp}] [${level}] ${message}`
+
+  appLogs.push(logLine)
+  if (appLogs.length > MAX_LOGS) {
+    appLogs.shift()
+  }
+}
+
+// Interceptar console
+const originalLog = console.log
+const originalError = console.error
+const originalWarn = console.warn
+
+console.log = (...args) => {
+  addLog('INFO', ...args)
+  originalLog(...args)
+}
+console.error = (...args) => {
+  addLog('ERROR', ...args)
+  originalError(...args)
+}
+console.warn = (...args) => {
+  addLog('WARN', ...args)
+  originalWarn(...args)
+}
+
 // Inicializar electron-store
 const store = new Store({
   defaults: {
@@ -45,7 +78,7 @@ const store = new Store({
 const anyStore = store as unknown as Store<Record<string, unknown>>
 
 let mainWindow: BrowserWindow | null = null
-let tray: Tray | null = null
+// let tray: Tray | null = null // Tray removido conforme solicitado
 let isOverlayMode = false
 
 // Conector real Twitch
@@ -241,45 +274,9 @@ function createWindow(): void {
 }
 
 // Configurar System Tray
-function createTray(): void {
-  // Criar ícone simples para a bandeja
-  const trayIcon = nativeImage.createEmpty()
-  // No Windows usamos um ícone transparente ou uma imagem pequena. Para a base, criamos um ícone básico do template
-  // Se houver resources/icon.png usaremos ele, senão criamos uma imagem vazia de 16x16
-  const iconPath = join(__dirname, '../../resources/icon.png')
-  let finalIcon = trayIcon
-  try {
-    finalIcon = nativeImage.createFromPath(iconPath).resize({ width: 16, height: 16 })
-  } catch {
-    // Fallback se não conseguir ler
-  }
-
-  tray = new Tray(finalIcon)
-  const contextMenu = Menu.buildFromTemplate([
-    {
-      label: 'Mostrar Aplicativo',
-      click: (): void => {
-        mainWindow?.show()
-      }
-    },
-    { type: 'separator' },
-    {
-      label: 'Sair',
-      click: (): void => {
-        app.quit()
-      }
-    }
-  ])
-
-  tray.setToolTip('MultiChat Integrator')
-  tray.setContextMenu(contextMenu)
-
-  // Duplo clique na bandeja mostra o app
-  tray.on('double-click', () => {
-    mainWindow?.show()
-  })
-}
-
+// function createTray(): void {
+//   // Função desativada para remover ícone da systray
+// }
 function toggleOverlayMode(): void {
   isOverlayMode = !isOverlayMode
 
@@ -288,25 +285,10 @@ function toggleOverlayMode(): void {
     mainWindow.webContents.send('chat:overlay-status', isOverlayMode)
   }
 
-  // Atualizar menu da tray
-  if (tray) {
-    const contextMenu = Menu.buildFromTemplate([
-      {
-        label: 'Mostrar Aplicativo',
-        click: (): void => {
-          mainWindow?.show()
-        }
-      },
-      { type: 'separator' },
-      {
-        label: 'Sair',
-        click: (): void => {
-          app.quit()
-        }
-      }
-    ])
-    tray.setContextMenu(contextMenu)
-  }
+  // Atualizar menu da tray - Removido pois tray não é mais usado
+  // if (tray) {
+  //   ...
+  // }
 }
 
 // Registrar IPC Handlers
@@ -717,8 +699,13 @@ app.whenReady().then(() => {
     autoUpdater.quitAndInstall()
   })
 
+  // Retornar logs para o frontend
+  ipcMain.handle('logs:get', () => {
+    return appLogs
+  })
+
   createWindow()
-  createTray()
+  // createTray() - Removido para não mostrar ícone na bandeja
 
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) {

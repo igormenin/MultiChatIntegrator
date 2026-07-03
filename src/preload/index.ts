@@ -144,7 +144,8 @@ const api = {
     ipcRenderer.invoke('mutedUsers:save', mutedUsers),
   getAppVersion: () => ipcRenderer.invoke('app:version'),
   checkForUpdates: () => ipcRenderer.invoke('update:check'),
-  installUpdate: () => ipcRenderer.invoke('update:install')
+  installUpdate: () => ipcRenderer.invoke('update:install'),
+  getLogs: () => ipcRenderer.invoke('logs:get')
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

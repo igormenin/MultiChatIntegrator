@@ -8,6 +8,12 @@ type AnyStore = Store<Record<string, unknown>>
 const API_KEY = import.meta.env.MAIN_VITE_YOUTUBE_API_KEY || ''
 const YOUTUBE_API_BASE = 'https://www.googleapis.com/youtube/v3'
 
+const POLLING_MIN = parseInt(import.meta.env.MAIN_VITE_YOUTUBE_POLL_INTERVAL_MIN || '8', 10) * 1000
+const POLLING_MAX = parseInt(import.meta.env.MAIN_VITE_YOUTUBE_POLL_INTERVAL_MAX || '20', 10) * 1000
+const POLLING_THRESHOLD = parseInt(import.meta.env.MAIN_VITE_YOUTUBE_POLL_EMPTY_THRESHOLD || '4', 10)
+const POLLING_INCREMENT = parseInt(import.meta.env.MAIN_VITE_YOUTUBE_POLL_INCREMENT_STEP || '2', 10) * 1000
+const POLLING_DECREMENT = parseInt(import.meta.env.MAIN_VITE_YOUTUBE_POLL_DECREMENT_STEP || '2', 10) * 1000
+
 interface YouTubeLiveChatMessage {
   id: string
   snippet: {
@@ -48,8 +54,8 @@ export class YouTubeConnector {
   private liveChatId: string = ''
   private videoId: string = ''
   private nextPageToken: string = ''
-  private basePollingInterval: number = 3000 // default 3s
-  private currentPollingInterval: number = 3000
+  private basePollingInterval: number = POLLING_MIN
+  private currentPollingInterval: number = POLLING_MIN
   private consecutiveEmptyPolls: number = 0
 
   private tokens: YouTubeTokens | null = null
@@ -71,7 +77,17 @@ export class YouTubeConnector {
   // ----------------------------------------------------------------
   async connect(channelOrVideoId: string): Promise<void> {
     this.isStopped = false
-    this.videoId = channelOrVideoId.trim()
+    let rawId = channelOrVideoId.trim()
+
+    // Extrair ID se for uma URL completa do YouTube
+    if (rawId.includes('youtube.com/') || rawId.includes('youtu.be/')) {
+      const match = rawId.match(/(?:v=|\/)([0-9A-Za-z_-]{11}).*/)
+      if (match && match[1]) {
+        rawId = match[1]
+      }
+    }
+
+    this.videoId = rawId
     this.onStatusChange?.('connecting', this.videoId || 'Auto-detect')
 
     // Tentar obter tokens válidos (OAuth)
@@ -122,7 +138,7 @@ export class YouTubeConnector {
   private async fetchActiveBroadcast(
     accessToken: string
   ): Promise<{ videoId: string; liveChatId: string }> {
-    const url = `${YOUTUBE_API_BASE}/liveBroadcasts?part=id,snippet&broadcastStatus=active&type=all`
+    const url = `${YOUTUBE_API_BASE}/liveBroadcasts?part=id,snippet&broadcastStatus=active&mine=true&broadcastType=all`
     const res = await net.fetch(url, {
       headers: { Authorization: `Bearer ${accessToken}` }
     })
@@ -234,12 +250,12 @@ export class YouTubeConnector {
       maxResults: '200'
     })
 
-    if (this.nextPageToken) {
-      params.append('pageToken', this.nextPageToken)
-    }
-
     if (!this.tokens) {
       params.append('key', API_KEY)
+    }
+
+    if (this.nextPageToken) {
+      params.append('pageToken', this.nextPageToken)
     }
 
     const url = `${YOUTUBE_API_BASE}/liveChat/messages?${params.toString()}`
@@ -274,7 +290,7 @@ export class YouTubeConnector {
 
     // 2. Atualizar intervalo base recomendado pela API
     if (data.pollingIntervalMillis) {
-      this.basePollingInterval = Math.max(2000, data.pollingIntervalMillis)
+      this.basePollingInterval = Math.max(POLLING_MIN, data.pollingIntervalMillis)
     }
 
     const messages = data.items || []
@@ -282,19 +298,24 @@ export class YouTubeConnector {
     // 3. Otimização de cota adaptativa (Opção B)
     if (messages.length === 0) {
       this.consecutiveEmptyPolls++
-      // A cada poll vazio após 10 seguidos (aproximadamente 30s), aumentamos em 500ms o intervalo até o teto de 6s
-      if (this.consecutiveEmptyPolls > 10) {
+      // Se estourar o limite de paciência, começa a subir
+      if (this.consecutiveEmptyPolls > POLLING_THRESHOLD) {
         this.currentPollingInterval = Math.min(
-          6000,
-          this.basePollingInterval + (this.consecutiveEmptyPolls - 10) * 500
+          POLLING_MAX,
+          this.currentPollingInterval + POLLING_INCREMENT
         )
-      } else {
-        this.currentPollingInterval = this.basePollingInterval
       }
     } else {
-      // Resetar se chegarem novas mensagens
+      // Quando chegam mensagens, zeramos o contador de vazias e iniciamos a rampa de descida
       this.consecutiveEmptyPolls = 0
-      this.currentPollingInterval = this.basePollingInterval
+      this.currentPollingInterval = Math.max(
+        this.basePollingInterval,
+        this.currentPollingInterval - POLLING_DECREMENT
+      )
+    }
+
+    // Trava de segurança garantindo que nunca faremos polls mais rápidos do que a API recomenda no momento (basePollingInterval)
+    this.currentPollingInterval = Math.max(this.basePollingInterval, this.currentPollingInterval)
 
       // Processar e emitir mensagens (Apenas se não for a primeira chamada para evitar flooding de histórico)
       if (this.nextPageToken) {
@@ -408,7 +429,7 @@ export class YouTubeConnector {
     if (!this.tokens || !this.liveChatId) return false
 
     try {
-      const url = `${YOUTUBE_API_BASE}/liveChat/messages?part=snippet`
+      const url = `${YOUTUBE_API_BASE}/liveChat/messages?part=snippet&key=${API_KEY}`
       const body = JSON.stringify({
         snippet: {
           liveChatId: this.liveChatId,

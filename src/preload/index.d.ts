@@ -72,6 +72,7 @@ interface CustomAPI {
   getAppVersion: () => Promise<string>
   checkForUpdates: () => Promise<{ success: boolean; error?: string; result?: unknown }>
   installUpdate: () => Promise<void>
+  getLogs: () => Promise<string[]>
 }
 
 declare global {
