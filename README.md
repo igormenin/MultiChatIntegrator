@@ -1,6 +1,8 @@
-# MultiChatIntegrator
+# MultiChatIntegrator - (BETA)
 
-An Electron application with React and TypeScript
+An Electron application with React and TypeScript.
+
+# Release for Beta Users
 
 ## Recommended IDE Setup
 
