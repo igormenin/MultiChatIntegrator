@@ -86,6 +86,39 @@ main {
   margin: 0 auto 2rem auto;
 }
 
+.testing-notice {
+  background-color: rgba(234, 179, 8, 0.1);
+  border: 1px solid rgba(234, 179, 8, 0.3);
+  color: #eab308;
+  padding: 1rem;
+  border-radius: 8px;
+  max-width: 600px;
+  margin: 0 auto 1rem auto;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.lang-switcher {
+  display: inline-flex;
+  margin-left: 2rem;
+  gap: 0.5rem;
+  align-items: center;
+  color: var(--text-muted);
+}
+
+.lang-switcher a {
+  margin-left: 0;
+  font-size: 0.9rem;
+}
+
+.lang-switcher a.active-lang {
+  color: var(--text-main);
+  font-weight: 700;
+}
+
 .document-card {
   background-color: var(--card-bg);
   border: 1px solid var(--border-color);
@@ -188,6 +221,12 @@ footer {
     margin: 0 1rem;
   }
   
+  .lang-switcher {
+    margin-left: 0;
+    margin-top: 1rem;
+    justify-content: center;
+  }
+
   .document-card {
     padding: 1.5rem;
   }
