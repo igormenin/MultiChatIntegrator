@@ -310,9 +310,9 @@ app.whenReady().then(() => {
     mainWindow?.minimize()
   })
 
-  // Fechar janela (esconder para rodar em segundo plano)
+  // Fechar janela (encerra o aplicativo)
   ipcMain.handle('window:close', () => {
-    mainWindow?.hide()
+    app.quit()
   })
 
   // Redimensionar altura da janela (limite mínimo é o tamanho padrão de abertura: 720px)
@@ -607,63 +607,11 @@ app.whenReady().then(() => {
         if (platform === 'twitch') {
           success = await twitchConnector.sendMessage(text)
 
-          // Eco local da mensagem enviada (Twitch não rebate via EventSub quando bot == streamer)
-          if (success && mainWindow) {
-            const tokens = await getValidTokens(anyStore)
-            const selfName = tokens?.login || (store.get('twitchChannel') as string) || 'você'
-            mainWindow.webContents.send('chat:message', {
-              id: `twitch-self-${Date.now()}`,
-              platform: 'twitch',
-              username: selfName,
-              displayName: selfName,
-              text,
-              timestamp: Date.now(),
-              color: '#A370F7',
-              isModerator: true,
-              isSubscriber: false,
-              messageId: `msg-self-${Math.random()}`
-            })
-          }
         } else if (platform === 'youtube') {
           success = await youtubeConnector.sendMessage(text)
 
-          // Eco local da mensagem enviada
-          if (success && mainWindow) {
-            const ytTokens = await getValidYouTubeTokens(anyStore)
-            const selfName = ytTokens?.channelTitle || 'você'
-            mainWindow.webContents.send('chat:message', {
-              id: `youtube-self-${Date.now()}`,
-              platform: 'youtube',
-              username: selfName.toLowerCase().replace(/\s+/g, ''),
-              displayName: selfName,
-              text,
-              timestamp: Date.now(),
-              color: '#FF5555',
-              isModerator: true,
-              isSubscriber: false,
-              messageId: `msg-self-${Math.random()}`
-            })
-          }
         } else {
           success = await kickConnector.sendMessage(text)
-
-          // Eco local da mensagem enviada
-          if (success && mainWindow) {
-            const kickTokens = await getValidKickTokens(anyStore)
-            const selfName = kickTokens?.username || (store.get('kickSlug') as string) || 'você'
-            mainWindow.webContents.send('chat:message', {
-              id: `kick-self-${Date.now()}`,
-              platform: 'kick',
-              username: selfName.toLowerCase().replace(/\s+/g, ''),
-              displayName: selfName,
-              text,
-              timestamp: Date.now(),
-              color: '#53FC18',
-              isModerator: true,
-              isSubscriber: false,
-              messageId: `msg-self-${Math.random()}`
-            })
-          }
         }
 
         return { success, platform }

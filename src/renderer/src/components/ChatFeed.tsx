@@ -1,7 +1,8 @@
-import React, { useRef, useState, useEffect } from 'react'
+import React, { useRef, useState, useEffect, useMemo } from 'react'
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso'
 import { useChatStore } from '../store/chatStore'
 import { ChatMessage } from './ChatMessage'
+import { ChatMessage as ChatMessageType } from '../../../common/types/ChatMessage'
 import logoIcon from '../assets/icon.png'
 
 export const ChatFeed: React.FC = () => {
@@ -30,10 +31,19 @@ export const ChatFeed: React.FC = () => {
     ? 0
     : Math.max(0, filteredMessages.length - messagesCountAtBottomLeave)
 
+  // Array estável para o Virtuoso para não causar re-renders/loop infinito
+  const virtuosoData = useMemo(() => {
+    return [
+      ...filteredMessages,
+      { id: 'end-divider', isDivider: true } as unknown as ChatMessageType,
+      { id: 'end-spacer', isSpacer: true } as unknown as ChatMessageType
+    ]
+  }, [filteredMessages])
+
   const scrollToBottom = (): void => {
     if (virtuosoRef.current) {
       virtuosoRef.current.scrollToIndex({
-        index: filteredMessages.length - 1,
+        index: filteredMessages.length + 1, // Foca no spacer invisível para garantir o espaço de 64px
         align: 'end',
         behavior: 'smooth'
       })
@@ -48,16 +58,19 @@ export const ChatFeed: React.FC = () => {
 
     if (filteredMessages.length === 0) {
       isInitialLoad.current = true
-    } else if (filteredMessages.length > 0 && virtuosoRef.current && isInitialLoad.current) {
-      // Pequeno atraso para garantir que as imagens/mensagens renderizaram e adquiriram altura
-      timer = setTimeout(() => {
-        virtuosoRef.current?.scrollToIndex({
-          index: filteredMessages.length - 1,
-          align: 'end',
-          behavior: 'auto'
-        })
-        isInitialLoad.current = false
-      }, 150)
+    } else if (filteredMessages.length > 0 && virtuosoRef.current) {
+      if (isInitialLoad.current) {
+        // Pequeno atraso para garantir que as imagens/mensagens renderizaram e adquiriram altura
+        timer = setTimeout(() => {
+          virtuosoRef.current?.scrollToIndex({
+            index: filteredMessages.length + 1, // Foca no spacer
+            align: 'end',
+            behavior: 'auto'
+          })
+          isInitialLoad.current = false
+        }, 200) // Aumentei um pouquinho para garantir que a DOM carregou
+      }
+      // Removido o bloco "else if (isAtBottom)" pois conflita com o followOutput="smooth" nativo do Virtuoso.
     }
 
     return () => {
@@ -114,13 +127,28 @@ export const ChatFeed: React.FC = () => {
       ) : (
         <Virtuoso
           ref={virtuosoRef}
-          data={filteredMessages}
-          initialTopMostItemIndex={filteredMessages.length - 1}
-          followOutput="smooth"
-          totalCount={filteredMessages.length}
-          itemContent={(_index, message) => <ChatMessage key={message.id} message={message} />}
+          data={virtuosoData}
+          initialTopMostItemIndex={filteredMessages.length + 1}
+          followOutput={(isAtBottom) => (isAtBottom ? 'smooth' : false)}
+          totalCount={filteredMessages.length + 2}
+          itemContent={(_index, message: ChatMessageType & { isDivider?: boolean; isSpacer?: boolean }) => {
+            if (message.isSpacer) {
+              return <div style={{ height: '64px', width: '100%' }} />
+            }
+            if (message.isDivider) {
+              return (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', opacity: 0.35, marginTop: '8px' }}>
+                  <div style={{ flex: 1, height: '1px', background: 'linear-gradient(90deg, transparent, var(--text-muted), transparent)' }} />
+                  <span style={{ padding: '0 12px', fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '2px', fontWeight: 600 }}>Fim das Mensagens</span>
+                  <div style={{ flex: 1, height: '1px', background: 'linear-gradient(90deg, transparent, var(--text-muted), transparent)' }} />
+                </div>
+              )
+            }
+            return <ChatMessage key={message.id} message={message} />
+          }}
           style={{ height: '100%', width: '100%', backgroundColor: 'transparent', zIndex: 1 }}
           alignToBottom
+          atBottomThreshold={150}
           atBottomStateChange={(atBottom) => {
             setIsAtBottom(atBottom)
             if (!atBottom) {
