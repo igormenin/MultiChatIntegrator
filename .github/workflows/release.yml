@@ -55,3 +55,10 @@ jobs:
           MAIN_VITE_KICK_CLIENT_SECRET: ${{ secrets.KICK_CLIENT_SECRET }}
         run: npm run build:win -- --publish always
 
+      - name: Publish Releases (Mark as Latest)
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT_RELLEASES }}
+        shell: bash
+        run: |
+          gh release edit "${{ github.ref_name }}" --repo igormenin/MultiChatIntegrator-Releases --draft=false --prerelease=false --latest || echo "Failed to update public release"
+          gh release edit "${{ github.ref_name }}" --draft=false --prerelease=false --latest || echo "Failed to update private release"
