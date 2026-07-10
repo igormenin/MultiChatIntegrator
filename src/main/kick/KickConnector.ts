@@ -331,13 +331,13 @@ export class KickConnector {
 
       if (res.ok) {
         const data = (await res.json()) as {
-          data?: {
+          data?: Array<{
             viewer_count?: string | number
-          }
+          }>
           viewer_count?: string | number
         }
-        const streamData = data.data || data
-        const viewers = parseInt(String(streamData.viewer_count || '0'), 10)
+        const streamData = Array.isArray(data.data) ? data.data[0] : data
+        const viewers = parseInt(String(streamData?.viewer_count || '0'), 10)
         this.onViewerCount?.(viewers)
         return
       }
