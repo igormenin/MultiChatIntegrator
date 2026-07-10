@@ -40,6 +40,9 @@ appImage:
   artifactName: ${name}-${version}.${ext}
 npmRebuild: false
 publish:
-  provider: github
-  owner: igormenin
-  repo: MultiChatIntegrator
+  - provider: github
+    owner: igormenin
+    repo: MultiChatIntegrator-Releases
+  - provider: github
+    owner: igormenin
+    repo: MultiChatIntegrator

@@ -15,6 +15,9 @@ export interface MutedUser {
   platform: PlatformName
 }
 
+export type FontSize = 'small' | 'medium' | 'large'
+
+
 interface ChatState {
   messages: ChatMessage[]
   connections: Record<PlatformName, PlatformConnection>
@@ -23,6 +26,7 @@ interface ChatState {
   isOverlayMode: boolean
   quickMessages: QuickMessage[]
   mutedUsers: MutedUser[]
+  fontSize: FontSize
 
   // Actions
   addMessage: (message: ChatMessage) => void
@@ -42,6 +46,7 @@ interface ChatState {
   setMutedUsers: (users: MutedUser[]) => void
   addMutedUser: (user: MutedUser) => void
   removeMutedUser: (id: string) => void
+  setFontSize: (size: FontSize) => void
 }
 
 const MAX_MESSAGES = 500
@@ -72,6 +77,7 @@ export const useChatStore = create<ChatState>((set) => ({
   isOverlayMode: false,
   quickMessages: [],
   mutedUsers: [],
+  fontSize: 'medium',
 
   addMessage: (message) =>
     set((state) => {
@@ -142,5 +148,7 @@ export const useChatStore = create<ChatState>((set) => ({
   removeMutedUser: (id) =>
     set((state) => ({
       mutedUsers: state.mutedUsers.filter((u) => u.id !== id)
-    }))
+    })),
+
+  setFontSize: (size) => set({ fontSize: size })
 }))

@@ -35,16 +35,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Create GitHub Release Draft
+      - name: Create GitHub Release Drafts
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT_RELEASES }}
         shell: bash
         run: |
-          gh release create "${{ github.ref_name }}" --draft --title "${{ github.ref_name }}" --notes "Release ${{ github.ref_name }}" || echo "Release draft já existe ou não pôde ser criada"
+          gh release create "${{ github.ref_name }}" --repo igormenin/MultiChatIntegrator-Releases --draft --title "${{ github.ref_name }}" --notes "Release ${{ github.ref_name }}" || echo "Release draft já existe (público)"
+          gh release create "${{ github.ref_name }}" --draft --title "${{ github.ref_name }}" --notes "Release ${{ github.ref_name }}" || echo "Release draft já existe (privado)"
 
       - name: Build and Publish Release
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT_RELEASES }}
           MAIN_VITE_TWITCH_CLIENT_ID: ${{ secrets.TWITCH_CLIENT_ID }}
           MAIN_VITE_TWITCH_CLIENT_SECRET: ${{ secrets.TWITCH_CLIENT_SECRET }}
           MAIN_VITE_YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useChatStore } from '../store/chatStore'
+import { useChatStore, FontSize } from '../store/chatStore'
 import { PlatformName } from '../../../common/types/Platform'
 import logoIcon from '../assets/icon.png'
 
@@ -16,7 +16,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isMutedUsersOpen,
   onToggleMutedUsers
 }) => {
-  const { connections, activeFilters, toggleFilter, updateConnectionStatus } = useChatStore()
+  const { connections, activeFilters, toggleFilter, updateConnectionStatus, fontSize, setFontSize } = useChatStore()
+
+  const [isFontSizeOpen, setIsFontSizeOpen] = useState(false)
 
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false)
   const [versionText, setVersionText] = useState('v1.0.0')
@@ -276,6 +278,98 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <line x1="12" y1="2" x2="12" y2="12" />
           </svg>
         </button>
+
+        {/* Font Size Button */}
+        <div style={{ position: 'relative' }}>
+          <button
+            onClick={() => setIsFontSizeOpen(!isFontSizeOpen)}
+            className="tooltip-right"
+            data-tooltip="Tamanho da Fonte"
+            style={{
+              width: '42px',
+              height: '42px',
+              backgroundColor: isFontSizeOpen ? 'rgba(255, 255, 255, 0.04)' : 'transparent',
+              border: '1px solid',
+              borderColor: isFontSizeOpen ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
+              borderRadius: '8px',
+              color: isFontSizeOpen ? '#fff' : 'var(--text-secondary)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <svg
+              viewBox="0 0 24 24"
+              width="20"
+              height="20"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="4 7 4 4 20 4 20 7" />
+              <line x1="9" y1="20" x2="15" y2="20" />
+              <line x1="12" y1="4" x2="12" y2="20" />
+            </svg>
+          </button>
+
+          {/* Font Size Popover */}
+          {isFontSizeOpen && (
+            <div
+              style={{
+                position: 'absolute',
+                left: 'calc(100% + 12px)',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                backgroundColor: 'var(--bg-sidebar)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '8px',
+                padding: '8px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '4px',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                zIndex: 100,
+                minWidth: '120px'
+              }}
+            >
+              {(['small', 'medium', 'large'] as FontSize[]).map((size) => {
+                const labels = { small: 'Pequeno', medium: 'Médio', large: 'Grande' }
+                return (
+                  <button
+                    key={size}
+                    onClick={() => {
+                      setFontSize(size)
+                      setIsFontSizeOpen(false)
+                    }}
+                    style={{
+                      padding: '8px 12px',
+                      backgroundColor: fontSize === size ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
+                      color: fontSize === size ? '#fff' : 'var(--text-secondary)',
+                      border: 'none',
+                      borderRadius: '4px',
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      fontSize: '13px',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (fontSize !== size) e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)'
+                    }}
+                    onMouseLeave={(e) => {
+                      if (fontSize !== size) e.currentTarget.style.backgroundColor = 'transparent'
+                    }}
+                  >
+                    {labels[size]}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
 
         {/* Bottom User Filter (Mute) Button */}
         <button

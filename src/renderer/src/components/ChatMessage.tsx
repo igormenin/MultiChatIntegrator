@@ -1,5 +1,6 @@
 import React from 'react'
 import { ChatMessage as ChatMessageType } from '../../../common/types/ChatMessage'
+import { useChatStore } from '../store/chatStore'
 
 interface ChatMessageProps {
   message: ChatMessageType
@@ -7,6 +8,7 @@ interface ChatMessageProps {
 
 export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
   const [imgError, setImgError] = React.useState(false)
+  const { fontSize } = useChatStore()
 
   const {
     platform,
@@ -194,7 +196,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
               alignItems: 'center',
               flexWrap: 'wrap',
               gap: '6px',
-              fontSize: '12px'
+              fontSize: fontSize === 'small' ? '10px' : fontSize === 'large' ? '14.5px' : '12px'
             }}
           >
             {/* User Name */}
@@ -241,7 +243,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
           {/* Message Text */}
           <div
             style={{
-              fontSize: '13.5px',
+              fontSize: fontSize === 'small' ? '11.5px' : fontSize === 'large' ? '16.5px' : '13.5px',
               color: 'var(--text-primary)',
               lineHeight: '1.4',
               wordBreak: 'break-word',
