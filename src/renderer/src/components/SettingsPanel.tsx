@@ -39,6 +39,9 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen }) => {
   const [twitchChannel, setTwitchChannel] = useState(() => connections.twitch.channelInfo || '')
   const [youtubeVideoId, setYoutubeVideoId] = useState(() => connections.youtube.channelInfo || '')
 
+  // Provider do YouTube fixado em 'chat_popup'
+  const youtubeProvider = 'chat_popup'
+
   // Checkboxes de persistência
   const [saveTwitchChannel, setSaveTwitchChannel] = useState(false)
   const [saveYoutubeVideoId, setSaveYoutubeVideoId] = useState(false)
@@ -214,7 +217,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen }) => {
         if (!youtubeVideoId.trim() && youtubeAuthStep !== 'authenticated') return
         const channelInfo = youtubeVideoId.trim() || 'Auto-detecção'
         updateConnectionStatus('youtube', 'connecting', channelInfo)
-        await window.api.connectYouTube(youtubeVideoId.trim(), saveYoutubeVideoId)
+        await window.api.connectYouTube(youtubeVideoId.trim(), saveYoutubeVideoId, youtubeProvider)
       } else if (platform === 'kick') {
         if (kickAuthStep !== 'authenticated') return
         const channelInfo = kickLogin || 'Auto-detecção'
@@ -662,16 +665,22 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen }) => {
                 — OU LEITURA DIRETA POR VÍDEO —
               </div>
 
+              {/* Input de Video ID — visível apenas quando não conectado */}
+              {connections.youtube.status !== 'connected' && (
+                <input
+                  type="text"
+                  value={youtubeVideoId}
+                  onChange={(e) => setYoutubeVideoId(e.target.value)}
+                  placeholder="Video ID ou ID da Live"
+                  disabled={connections.youtube.status === 'connecting'}
+                  style={{ width: '100%' }}
+                />
+              )}
+
+
+              {/* Ações: connect/disconnect — condicionais ao status */}
               {connections.youtube.status !== 'connected' ? (
                 <>
-                  <input
-                    type="text"
-                    value={youtubeVideoId}
-                    onChange={(e) => setYoutubeVideoId(e.target.value)}
-                    placeholder="Video ID ou ID da Live"
-                    disabled={connections.youtube.status === 'connecting'}
-                    style={{ width: '100%' }}
-                  />
                   <label
                     style={{
                       display: 'flex',
@@ -711,9 +720,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen }) => {
                       cursor: 'pointer'
                     }}
                   >
-                    {connections.youtube.status === 'connecting'
-                      ? 'Conectando...'
-                      : 'Conectar por ID'}
+                    {connections.youtube.status === 'connecting' ? 'Conectando...' : 'Conectar por ID'}
                   </button>
                 </>
               ) : (
@@ -795,16 +802,99 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen }) => {
                 </button>
               </div>
 
+              {/* Input de Video ID — visível apenas quando não conectado */}
+              {connections.youtube.status !== 'connected' && (
+                <input
+                  type="text"
+                  value={youtubeVideoId}
+                  onChange={(e) => setYoutubeVideoId(e.target.value)}
+                  placeholder="Video ID (deixe vazio para auto)"
+                  disabled={connections.youtube.status === 'connecting'}
+                  style={{ width: '100%' }}
+                />
+              )}
+
+              {/* Toggle de provider — SEMPRE VISÍVEL, desabilitado quando conectado */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '8px 0 4px 0',
+                  borderTop: '1px solid var(--border-color)',
+                  marginTop: '4px'
+                }}
+              >
+                <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
+                  Modo de leitura
+                </span>
+                <button
+                  onClick={() =>
+                    setYoutubeProvider((p) =>
+                      p === 'official_api' ? 'chat_popup' : 'official_api'
+                    )
+                  }
+                  disabled={connections.youtube.status !== 'disconnected'}
+                  title={
+                    youtubeProvider === 'official_api'
+                      ? 'Alternar para Chat Popup'
+                      : 'Alternar para API Oficial'
+                  }
+                  style={{
+                    width: '102px',
+                    height: '28px',
+                    borderRadius: '14px',
+                    border: 'none',
+                    cursor:
+                      connections.youtube.status !== 'disconnected' ? 'not-allowed' : 'pointer',
+                    backgroundColor: youtubeProvider === 'chat_popup' ? '#22c55e' : '#ef4444',
+                    position: 'relative',
+                    flexShrink: 0,
+                    transition: 'background-color 0.25s',
+                    opacity: connections.youtube.status !== 'disconnected' ? 0.55 : 1,
+                    padding: 0,
+                    overflow: 'hidden'
+                  }}
+                >
+                  {/* Texto dentro da pill */}
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      ...(youtubeProvider === 'chat_popup' ? { left: '8px' } : { right: '8px' }),
+                      fontSize: '9px',
+                      fontWeight: 700,
+                      color: '#fff',
+                      whiteSpace: 'nowrap',
+                      pointerEvents: 'none',
+                      lineHeight: 1,
+                      letterSpacing: '0.3px'
+                    }}
+                  >
+                    {youtubeProvider === 'chat_popup' ? 'Chat Popup' : 'API'}
+                  </span>
+                  {/* Thumb circular */}
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: '2px',
+                      left: youtubeProvider === 'chat_popup' ? 'calc(100% - 26px)' : '2px',
+                      width: '24px',
+                      height: '24px',
+                      borderRadius: '50%',
+                      backgroundColor: '#fff',
+                      transition: 'left 0.25s',
+                      pointerEvents: 'none',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.25)'
+                    }}
+                  />
+                </button>
+              </div>
+
+              {/* Ações: connect/disconnect — condicionais ao status */}
               {connections.youtube.status !== 'connected' ? (
                 <>
-                  <input
-                    type="text"
-                    value={youtubeVideoId}
-                    onChange={(e) => setYoutubeVideoId(e.target.value)}
-                    placeholder="Video ID (deixe vazio para auto)"
-                    disabled={connections.youtube.status === 'connecting'}
-                    style={{ width: '100%' }}
-                  />
                   <label
                     style={{
                       display: 'flex',
@@ -844,9 +934,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen }) => {
                       cursor: 'pointer'
                     }}
                   >
-                    {connections.youtube.status === 'connecting'
-                      ? 'Conectando...'
-                      : 'Conectar à live'}
+                    {connections.youtube.status === 'connecting' ? 'Conectando...' : 'Conectar à live'}
                   </button>
                 </>
               ) : (

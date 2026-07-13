@@ -68,6 +68,7 @@ const store = new Store({
     saveTwitchChannel: false,
     saveYoutubeVideoId: false,
     saveKickSlug: false,
+    youtubeProvider: 'official_api',
     quickMessages: [],
     mutedUsers: []
   }
@@ -160,7 +161,8 @@ async function autoReconnect(): Promise<void> {
     const isYTAuth = !!(await getValidYouTubeTokens(anyStore))
     if (videoId || isYTAuth) {
       const channelInfo = videoId || 'Auto-detecção'
-      console.log(`[Auto-Reconnect] YouTube: ${channelInfo}`)
+      const savedProvider = (store.get('youtubeProvider') as string) || 'official_api'
+      console.log(`[Auto-Reconnect] YouTube: ${channelInfo} (provider=${savedProvider})`)
       mainWindow?.webContents.send('chat:status', 'youtube', 'connecting', channelInfo)
       youtubeConnector.onStatusChange = (status, info, error): void => {
         mainWindow?.webContents.send('chat:status', 'youtube', status, info, error)
@@ -171,7 +173,7 @@ async function autoReconnect(): Promise<void> {
       youtubeConnector.onViewerCount = (viewers, likes): void => {
         mainWindow?.webContents.send('chat:stats', 'youtube', viewers, likes)
       }
-      void youtubeConnector.connect(videoId)
+      void youtubeConnector.connect(videoId, savedProvider as 'official_api' | 'chat_popup')
     }
   }
 
@@ -493,10 +495,14 @@ app.whenReady().then(() => {
   })
 
   // 3. Conectar YouTube (Real)
-  ipcMain.handle('youtube:connect', async (_event, videoId: string, save: boolean) => {
-    console.log(`Conectando YouTube: ${videoId || 'detecção automática'}, save: ${save}`)
+  ipcMain.handle('youtube:connect', async (_event, videoId: string, save: boolean, provider: string) => {
+    const resolvedProvider = (provider === 'chat_popup' ? 'chat_popup' : 'official_api') as
+      | 'official_api'
+      | 'chat_popup'
+    console.log(`Conectando YouTube: ${videoId || 'detecção automática'}, save: ${save}, provider: ${resolvedProvider}`)
     store.set('saveYoutubeVideoId', save)
     store.set('youtubeVideoId', save ? videoId : '')
+    store.set('youtubeProvider', resolvedProvider)
 
     youtubeConnector.onStatusChange = (status, info, error): void => {
       mainWindow?.webContents.send('chat:status', 'youtube', status, info, error)
@@ -510,7 +516,7 @@ app.whenReady().then(() => {
       mainWindow?.webContents.send('chat:stats', 'youtube', viewers, likes)
     }
 
-    void youtubeConnector.connect(videoId)
+    void youtubeConnector.connect(videoId, resolvedProvider)
     return { success: true }
   })
 
@@ -544,7 +550,8 @@ app.whenReady().then(() => {
       kickSlug: store.get('kickSlug') as string,
       saveTwitchChannel: store.get('saveTwitchChannel') as boolean,
       saveYoutubeVideoId: store.get('saveYoutubeVideoId') as boolean,
-      saveKickSlug: store.get('saveKickSlug') as boolean
+      saveKickSlug: store.get('saveKickSlug') as boolean,
+      youtubeProvider: (store.get('youtubeProvider') as string) || 'official_api'
     }
   })
 

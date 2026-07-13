@@ -113,8 +113,8 @@ const api = {
   // Actions (Renderer -> Main)
   connectTwitch: (channel: string, save: boolean) =>
     ipcRenderer.invoke('twitch:connect', channel, save),
-  connectYouTube: (videoId: string, save: boolean) =>
-    ipcRenderer.invoke('youtube:connect', videoId, save),
+  connectYouTube: (videoId: string, save: boolean, provider: string) =>
+    ipcRenderer.invoke('youtube:connect', videoId, save, provider),
   connectKick: (slug: string, save: boolean) => ipcRenderer.invoke('kick:connect', slug, save),
   getSettings: () => ipcRenderer.invoke('settings:get'),
   disconnect: (platform: PlatformName) => ipcRenderer.invoke('chat:disconnect', platform),

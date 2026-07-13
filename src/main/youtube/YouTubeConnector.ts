@@ -2,6 +2,7 @@ import { net } from 'electron'
 import { getValidTokens, YouTubeTokens, refreshAccessToken } from './YouTubeAuth'
 import { ChatMessage } from '../../common/types/ChatMessage'
 import Store from 'electron-store'
+import { YouTubeChatPopupReader } from './YouTubeChatPopupReader'
 
 type AnyStore = Store<Record<string, unknown>>
 
@@ -61,6 +62,10 @@ export class YouTubeConnector {
   private tokens: YouTubeTokens | null = null
   private customEmojis: Map<string, string> = new Map()
 
+  // Modo de ingestão de mensagens fixo em 'chat_popup'
+  private provider: 'chat_popup' = 'chat_popup'
+  private chatPopupReader: YouTubeChatPopupReader | null = null
+
   // Callbacks
   onMessage: ((msg: ChatMessage) => void) | null = null
   onStatusChange:
@@ -75,7 +80,12 @@ export class YouTubeConnector {
   // ----------------------------------------------------------------
   // Conectar ao YouTube
   // ----------------------------------------------------------------
-  async connect(channelOrVideoId: string): Promise<void> {
+  async connect(
+    channelOrVideoId: string,
+    provider: 'chat_popup' = 'chat_popup'
+  ): Promise<void> {
+    this.provider = provider
+    console.log(`[YouTube] Iniciando conexão com provider='${provider}'`)
     this.isStopped = false
     let rawId = channelOrVideoId.trim()
 
@@ -216,6 +226,22 @@ export class YouTubeConnector {
   // Polling de mensagens
   // ----------------------------------------------------------------
   private startPollingLoop(): void {
+    // Modo chat_popup: delegar ao reader especializado (sem API oficial)
+    if (this.provider === 'chat_popup') {
+      console.log(`[YouTube] Modo chat_popup ativo. Delegando leitura para YouTubeChatPopupReader. videoId=${this.videoId}`)
+      this.chatPopupReader = new YouTubeChatPopupReader()
+      void this.chatPopupReader
+        .startReading(this.videoId, (msg) => this.onMessage?.(msg))
+        .catch((err: unknown) => {
+          if (this.isStopped) return
+          const errMsg = err instanceof Error ? err.message : String(err)
+          console.error('[YouTube ChatPopup] Falha fatal no leitor de chat:', errMsg)
+          this.onStatusChange?.('disconnected', undefined, errMsg)
+        })
+      return
+    }
+
+    // Modo official_api: polling via API oficial do YouTube (comportamento original)
     if (this.pollingTimer) clearTimeout(this.pollingTimer)
     if (this.isStopped) return
 
@@ -530,6 +556,9 @@ export class YouTubeConnector {
   // Desconectar e limpar timers
   // ----------------------------------------------------------------
   disconnect(): void {
+    // Encerrar reader do modo chat_popup se estiver ativo
+    this.chatPopupReader?.stop()
+    this.chatPopupReader = null
     this.isStopped = true
 
     if (this.pollingTimer) {

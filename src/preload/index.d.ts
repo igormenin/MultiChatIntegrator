@@ -25,7 +25,7 @@ interface CustomAPI {
   onUpdateError: (callback: (error: string) => void) => () => void
 
   connectTwitch: (channel: string, save: boolean) => Promise<void>
-  connectYouTube: (videoId: string, save: boolean) => Promise<void>
+  connectYouTube: (videoId: string, save: boolean, provider: string) => Promise<void>
   connectKick: (slug: string, save: boolean) => Promise<void>
   getSettings: () => Promise<{
     twitchChannel: string
@@ -34,6 +34,7 @@ interface CustomAPI {
     saveTwitchChannel: boolean
     saveYoutubeVideoId: boolean
     saveKickSlug: boolean
+    youtubeProvider: string
   }>
   disconnect: (platform: PlatformName) => Promise<void>
   toggleOverlay: () => Promise<void>
