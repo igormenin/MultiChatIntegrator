@@ -5,6 +5,7 @@ import { ChatFeed } from './components/ChatFeed'
 import { ChatComposer } from './components/ChatComposer'
 import { SettingsPanel } from './components/SettingsPanel'
 import { MutedUsersModal } from './components/MutedUsersModal'
+import { LogModal } from './components/LogModal'
 import { useChatStore } from './store/chatStore'
 
 function App(): React.JSX.Element {
@@ -12,6 +13,18 @@ function App(): React.JSX.Element {
     useChatStore()
   const [isSettingsOpen, setIsSettingsOpen] = useState(true)
   const [isMutedUsersOpen, setIsMutedUsersOpen] = useState(false)
+  const [isLogOpen, setIsLogOpen] = useState(false)
+
+  // Refs estáveis para os callbacks do Zustand — evitam re-registro de listeners IPC a cada re-render
+  const addMessageRef = React.useRef(addMessage)
+  const updateConnectionStatusRef = React.useRef(updateConnectionStatus)
+  const updateStatsRef = React.useRef(updateStats)
+  const setOverlayModeRef = React.useRef(setOverlayMode)
+  // Sincronizar refs sem re-disparar o useEffect
+  addMessageRef.current = addMessage
+  updateConnectionStatusRef.current = updateConnectionStatus
+  updateStatsRef.current = updateStats
+  setOverlayModeRef.current = setOverlayMode
 
   // Estados para o Auto-Updater
   const [updateStatus, setUpdateStatus] = useState<'idle' | 'downloading' | 'downloaded' | 'error'>(
@@ -31,24 +44,24 @@ function App(): React.JSX.Element {
 
     // 1. Ouvir mensagens de chat vindo do main process
     const cleanupChatMessage = window.api.onChatMessage((message) => {
-      addMessage(message)
+      addMessageRef.current(message)
     })
 
     // 2. Ouvir mudanças de status de conexão das plataformas
     const cleanupConnectionStatus = window.api.onConnectionStatus(
       (platform, status, channelInfo, error) => {
-        updateConnectionStatus(platform, status, channelInfo, error)
+        updateConnectionStatusRef.current(platform, status, channelInfo, error)
       }
     )
 
     // 3. Ouvir contagem de viewers e likes
     const cleanupViewerCount = window.api.onViewerCount((platform, viewers, likeCount) => {
-      updateStats(platform, { viewers, likeCount })
+      updateStatsRef.current(platform, { viewers, likeCount })
     })
 
     // 4. Ouvir mudança no status do overlay vinda do main process
     const cleanupOverlayStatus = window.api.onOverlayStatus((active) => {
-      setOverlayMode(active)
+      setOverlayModeRef.current(active)
     })
 
     // 5. Ouvir eventos de atualização automática do main process
@@ -92,7 +105,7 @@ function App(): React.JSX.Element {
       cleanupUpdateDownloaded()
       cleanupUpdateError()
     }
-  }, [addMessage, updateConnectionStatus, updateStats, setOverlayMode])
+  }, []) // Array vazio: listeners registrados UMA vez. Callbacks via refs acima.
 
   const handleInstallUpdate = (): void => {
     window.api.installUpdate()
@@ -141,6 +154,8 @@ function App(): React.JSX.Element {
         onToggleSettings={() => setIsSettingsOpen(!isSettingsOpen)}
         isMutedUsersOpen={isMutedUsersOpen}
         onToggleMutedUsers={() => setIsMutedUsersOpen(!isMutedUsersOpen)}
+        isLogOpen={isLogOpen}
+        onToggleLog={() => setIsLogOpen(!isLogOpen)}
       />
 
       {/* Área central principal */}
@@ -171,6 +186,9 @@ function App(): React.JSX.Element {
 
       {/* Modal de gerenciamento de usuários ocultados */}
       {isMutedUsersOpen && <MutedUsersModal onClose={() => setIsMutedUsersOpen(false)} />}
+
+      {/* Modal de Logs — z-index 9999 para ficar acima de tudo */}
+      {isLogOpen && <LogModal onClose={() => setIsLogOpen(false)} />}
 
       {/* Banner de Atualização Automática */}
       {showUpdateBanner && (

@@ -8,13 +8,17 @@ interface SidebarProps {
   onToggleSettings: () => void
   isMutedUsersOpen: boolean
   onToggleMutedUsers: () => void
+  isLogOpen: boolean
+  onToggleLog: () => void
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
   isSettingsOpen,
   onToggleSettings,
   isMutedUsersOpen,
-  onToggleMutedUsers
+  onToggleMutedUsers,
+  isLogOpen,
+  onToggleLog
 }) => {
   const { connections, activeFilters, toggleFilter, updateConnectionStatus, fontSize, setFontSize } = useChatStore()
 
@@ -405,6 +409,32 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <circle cx="8.5" cy="7" r="4" />
             <line x1="18" y1="8" x2="23" y2="13" />
             <line x1="23" y1="8" x2="18" y2="13" />
+          </svg>
+        </button>
+
+        {/* Log Button */}
+        <button
+          onClick={onToggleLog}
+          className="tooltip-right"
+          data-tooltip="Logs do App"
+          style={{
+            width: '42px',
+            height: '42px',
+            backgroundColor: isLogOpen ? 'rgba(255, 255, 255, 0.04)' : 'transparent',
+            border: '1px solid',
+            borderColor: isLogOpen ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
+            borderRadius: '8px',
+            color: isLogOpen ? '#94a3b8' : 'var(--text-secondary)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease'
+          }}
+        >
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="4 17 10 11 4 5" />
+            <line x1="12" y1="19" x2="20" y2="19" />
           </svg>
         </button>
 

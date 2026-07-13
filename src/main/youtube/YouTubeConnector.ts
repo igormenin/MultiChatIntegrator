@@ -89,9 +89,10 @@ export class YouTubeConnector {
     this.isStopped = false
     let rawId = channelOrVideoId.trim()
 
-    // Extrair ID se for uma URL completa do YouTube
+    // Extrair ID se for uma URL completa do YouTube (suporta youtu.be, youtube.com/watch, youtube.com/live, shorts, etc)
     if (rawId.includes('youtube.com/') || rawId.includes('youtu.be/')) {
-      const match = rawId.match(/(?:v=|\/)([0-9A-Za-z_-]{11}).*/)
+      // Regex robusto para pegar exatamente os 11 caracteres do ID em diferentes formatos de URL
+      const match = rawId.match(/(?:youtu\.be\/|v=|vi=|u\/\w\/|embed\/|live\/|shorts\/|\/v\/)([^#&?]{11})/)
       if (match && match[1]) {
         rawId = match[1]
       }
@@ -100,12 +101,26 @@ export class YouTubeConnector {
     this.videoId = rawId
     this.onStatusChange?.('connecting', this.videoId || 'Auto-detect')
 
-    // Tentar obter tokens válidos (OAuth)
+    // Tentar obter tokens válidos (OAuth) — usado apenas se necessário
     this.tokens = await getValidTokens(this.store)
 
     try {
-      if (!this.videoId) {
-        // Opção B: Detecção de Live Ativa (Video ID vazio)
+      if (this.provider === 'chat_popup') {
+        // Modo chat_popup: não precisa de liveChatId nem de API oficial.
+        // O YouTubeChatPopupReader opera diretamente com o videoId.
+        if (!this.videoId) {
+          // Sem ID e sem OAuth, não há como descobrir a live
+          if (!this.tokens) {
+            throw new Error('Nenhum Video ID fornecido. Cole o ID ou URL da live para conectar via Chat Popup.')
+          }
+          // Com OAuth, tenta detectar a live ativa para pegar o videoId
+          console.log('[YouTube] chat_popup: buscando live ativa do usuário autenticado...')
+          const broadcastInfo = await this.fetchActiveBroadcast(this.tokens.accessToken)
+          this.videoId = broadcastInfo.videoId
+        }
+        console.log(`[YouTube] chat_popup: videoId=${this.videoId}. Pulando resolução de liveChatId.`)
+      } else if (!this.videoId) {
+        // official_api sem ID: detectar via OAuth
         if (!this.tokens) {
           throw new Error('Nenhum login feito no YouTube e nenhum Video ID fornecido.')
         }
@@ -114,13 +129,13 @@ export class YouTubeConnector {
         this.videoId = broadcastInfo.videoId
         this.liveChatId = broadcastInfo.liveChatId
       } else {
-        // Video ID fornecido manualmente
+        // official_api com ID: resolver liveChatId via API oficial
         console.log(`[YouTube] Resolvendo liveChatId para o vídeo: ${this.videoId}`)
         this.liveChatId = await this.resolveLiveChatId(this.videoId)
       }
 
       console.log(
-        `[YouTube] Conectado com sucesso. liveChatId: ${this.liveChatId}, videoId: ${this.videoId}`
+        `[YouTube] Conectado com sucesso. provider=${this.provider}, videoId: ${this.videoId}, liveChatId: ${this.liveChatId || 'n/a (chat_popup)'}`
       )
       this.onStatusChange?.('connected', this.videoId)
 

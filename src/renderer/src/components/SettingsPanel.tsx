@@ -671,7 +671,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen }) => {
                   type="text"
                   value={youtubeVideoId}
                   onChange={(e) => setYoutubeVideoId(e.target.value)}
-                  placeholder="Video ID ou ID da Live"
+                  placeholder="URL ou ID da Live/Vídeo"
                   disabled={connections.youtube.status === 'connecting'}
                   style={{ width: '100%' }}
                 />
@@ -808,7 +808,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen }) => {
                   type="text"
                   value={youtubeVideoId}
                   onChange={(e) => setYoutubeVideoId(e.target.value)}
-                  placeholder="Video ID (deixe vazio para auto)"
+                  placeholder="URL ou ID (vazio para auto)"
                   disabled={connections.youtube.status === 'connecting'}
                   style={{ width: '100%' }}
                 />

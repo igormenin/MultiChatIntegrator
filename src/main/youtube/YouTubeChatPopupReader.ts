@@ -81,6 +81,9 @@ interface LiveChatAction {
 // ----------------------------------------------------------------
 export class YouTubeChatPopupReader {
   private stopped = false
+  // Limite generoso para livestreams de muitas horas
+  private readonly SEEN_IDS_MAX = 5000
+  private readonly SEEN_IDS_PURGE_TO = 4000 // Purgar para este tamanho quando atingir o limite
   private seenIds = new Set<string>()
 
   /** Encerra o loop de polling graciosamente. */
@@ -173,10 +176,15 @@ export class YouTubeChatPopupReader {
           }
 
           this.seenIds.add(msg.messageId)
-          // Limitar crescimento do Set de IDs
-          if (this.seenIds.size > 2000) {
-            const oldest = this.seenIds.values().next().value
-            if (oldest) this.seenIds.delete(oldest)
+          // Purga em lote ao atingir o limite — remove os mais antigos de uma vez só
+          if (this.seenIds.size > this.SEEN_IDS_MAX) {
+            const removeCount = this.seenIds.size - this.SEEN_IDS_PURGE_TO
+            const iter = this.seenIds.values()
+            for (let i = 0; i < removeCount; i++) {
+              const oldest = iter.next().value
+              if (oldest) this.seenIds.delete(oldest)
+            }
+            console.log(`[YouTube ChatPopup] seenIds purgado: ${removeCount} entradas removidas.`)
           }
 
           newCount++

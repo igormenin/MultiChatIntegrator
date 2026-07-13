@@ -222,7 +222,9 @@ function createWindow(): void {
     icon,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false
+      sandbox: false,
+      // Evita throttling de renders quando a janela não está em foco (causa piscar após horas)
+      backgroundThrottling: false
     }
   })
 
@@ -292,6 +294,11 @@ function toggleOverlayMode(): void {
   //   ...
   // }
 }
+
+// Fix para piscar da janela transparente em sessões longas (bug do Chromium/Electron)
+// Desabilita a reconexão automática de contexto GPU que causa flickering após horas de uso
+app.commandLine.appendSwitch('disable-gpu-compositing')
+app.commandLine.appendSwitch('disable-software-rasterizer')
 
 // Registrar IPC Handlers
 app.whenReady().then(() => {
