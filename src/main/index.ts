@@ -173,7 +173,7 @@ async function autoReconnect(): Promise<void> {
       youtubeConnector.onViewerCount = (viewers, likes): void => {
         mainWindow?.webContents.send('chat:stats', 'youtube', viewers, likes)
       }
-      void youtubeConnector.connect(videoId, savedProvider as 'official_api' | 'chat_popup')
+      void youtubeConnector.connect(videoId, 'chat_popup')
     }
   }
 
@@ -495,10 +495,8 @@ app.whenReady().then(() => {
   })
 
   // 3. Conectar YouTube (Real)
-  ipcMain.handle('youtube:connect', async (_event, videoId: string, save: boolean, provider: string) => {
-    const resolvedProvider = (provider === 'chat_popup' ? 'chat_popup' : 'official_api') as
-      | 'official_api'
-      | 'chat_popup'
+  ipcMain.handle('youtube:connect', async (_event, videoId: string, save: boolean) => {
+    const resolvedProvider = 'chat_popup'
     console.log(`Conectando YouTube: ${videoId || 'detecção automática'}, save: ${save}, provider: ${resolvedProvider}`)
     store.set('saveYoutubeVideoId', save)
     store.set('youtubeVideoId', save ? videoId : '')
