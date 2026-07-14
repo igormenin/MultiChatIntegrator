@@ -664,6 +664,70 @@ app.whenReady().then(() => {
     return appLogs
   })
 
+  // Exportar logs para TXT e enviar por E-mail
+  ipcMain.handle('logs:export-email', async (_, userInfo: string) => {
+    try {
+      const nodemailer = require('nodemailer')
+      const fs = require('fs')
+      const path = require('path')
+      const os = require('os')
+
+      const host = import.meta.env.MAIN_VITE_SMTP_HOST || process.env.SMTP_HOST
+      const port = Number(import.meta.env.MAIN_VITE_SMTP_PORT || process.env.SMTP_PORT) || 587
+      const user = import.meta.env.MAIN_VITE_SMTP_USER || process.env.SMTP_USER
+      const pass = import.meta.env.MAIN_VITE_SMTP_PASS || process.env.SMTP_PASS
+      const to = import.meta.env.MAIN_VITE_SMTP_TO || process.env.SMTP_TO
+      const from = import.meta.env.MAIN_VITE_SMTP_FROM || process.env.SMTP_FROM || user
+
+      if (!host || !user || !pass || !to) {
+        throw new Error(
+          'Configurações SMTP ausentes no .env (MAIN_VITE_SMTP_HOST, MAIN_VITE_SMTP_USER, MAIN_VITE_SMTP_PASS, MAIN_VITE_SMTP_TO)'
+        )
+      }
+
+      // Criar o arquivo temporário
+      const logContent = appLogs.join('\n')
+      const tempFilePath = path.join(os.tmpdir(), `multichat_logs_${Date.now()}.txt`)
+      fs.writeFileSync(tempFilePath, logContent, 'utf8')
+
+      // Configurar SMTP e enviar email
+      const transporter = nodemailer.createTransport({
+        host,
+        port,
+        secure: port === 465,
+        auth: {
+          user,
+          pass
+        }
+      })
+
+      const formattedDate = new Date().toLocaleString('pt-BR')
+      const mailBody = `${userInfo || 'Nenhuma informação de usuário fornecida.'}\n\nSegue em anexo o log completo gerado pelo sistema.`
+
+      await transporter.sendMail({
+        from: `"Sistema MultiChat" <${from}>`,
+        to,
+        subject: `Arquivo de LOG - ${formattedDate}`,
+        text: mailBody,
+        attachments: [
+          {
+            filename: 'logs.txt',
+            path: tempFilePath
+          }
+        ]
+      })
+
+      // Limpar o arquivo temporário
+      fs.unlinkSync(tempFilePath)
+
+      return { success: true }
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : String(err)
+      console.error('[SMTP] Erro ao enviar log:', errorMsg)
+      return { success: false, error: errorMsg }
+    }
+  })
+
   createWindow()
   // createTray() - Removido para não mostrar ícone na bandeja
 

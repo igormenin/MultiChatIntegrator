@@ -1,12 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { useChatStore } from '../store/chatStore'
 
 interface LogModalProps {
   onClose: () => void
 }
 
 export const LogModal: React.FC<LogModalProps> = ({ onClose }) => {
+  const connections = useChatStore((state) => state.connections)
   const [logs, setLogs] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isSendingEmail, setIsSendingEmail] = useState(false)
   const [autoScroll, setAutoScroll] = useState(true)
   const [filter, setFilter] = useState('')
   const endRef = useRef<HTMLDivElement>(null)
@@ -20,6 +23,34 @@ export const LogModal: React.FC<LogModalProps> = ({ onClose }) => {
       setLogs(['[Erro ao carregar logs]'])
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const handleExportEmail = async (): Promise<void> => {
+    if (isSendingEmail) return
+    setIsSendingEmail(true)
+    try {
+      let userInfo = 'Informações das Conexões Atuais:\n\n'
+      for (const [platform, conn] of Object.entries(connections)) {
+        userInfo += `Plataforma: ${platform.toUpperCase()}\n`
+        userInfo += `Status: ${conn.status}\n`
+        userInfo += `Usuário/Canal logado: ${conn.channelInfo || 'Não definido'}\n`
+        if (platform === 'youtube' && conn.status === 'connected') {
+          userInfo += `ID da Live do YouTube: ${conn.channelInfo || 'Não definido'}\n`
+        }
+        userInfo += '\n'
+      }
+
+      const result = await window.api.exportAndEmailLogs(userInfo)
+      if (result.success) {
+        alert('Logs exportados e enviados por e-mail com sucesso!')
+      } else {
+        alert('Erro ao enviar e-mail:\n' + result.error)
+      }
+    } catch (err: unknown) {
+      alert('Erro inesperado:\n' + (err instanceof Error ? err.message : String(err)))
+    } finally {
+      setIsSendingEmail(false)
     }
   }
 
@@ -89,9 +120,9 @@ export const LogModal: React.FC<LogModalProps> = ({ onClose }) => {
     >
       <div
         style={{
-          width: '100%',
-          maxWidth: '860px',
-          height: '80vh',
+          width: '90vw',
+          maxWidth: '90vw',
+          height: '90vh',
           backgroundColor: '#0d1117',
           border: '1px solid rgba(255,255,255,0.1)',
           borderRadius: '12px',
@@ -188,6 +219,35 @@ export const LogModal: React.FC<LogModalProps> = ({ onClose }) => {
               }}
             >
               Auto-scroll
+            </button>
+
+            {/* Export and Email */}
+            <button
+              onClick={() => void handleExportEmail()}
+              disabled={isSendingEmail}
+              title="Exportar e enviar por E-mail"
+              style={{
+                height: '28px',
+                padding: '0 10px',
+                backgroundColor: isSendingEmail ? 'rgba(255,255,255,0.02)' : 'rgba(16, 185, 129, 0.15)',
+                border: '1px solid',
+                borderColor: isSendingEmail ? 'rgba(255,255,255,0.05)' : 'rgba(16, 185, 129, 0.4)',
+                borderRadius: '6px',
+                color: isSendingEmail ? '#64748b' : '#10b981',
+                fontSize: '11px',
+                cursor: isSendingEmail ? 'wait' : 'pointer',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.15s'
+              }}
+            >
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                <polyline points="22,6 12,13 2,6" />
+              </svg>
+              {isSendingEmail ? 'Enviando...' : 'Exportar (E-mail)'}
             </button>
 
             {/* Refresh */}

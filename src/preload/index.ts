@@ -145,7 +145,8 @@ const api = {
   getAppVersion: () => ipcRenderer.invoke('app:version'),
   checkForUpdates: () => ipcRenderer.invoke('update:check'),
   installUpdate: () => ipcRenderer.invoke('update:install'),
-  getLogs: () => ipcRenderer.invoke('logs:get')
+  getLogs: () => ipcRenderer.invoke('logs:get'),
+  exportAndEmailLogs: (userInfo: string) => ipcRenderer.invoke('logs:export-email', userInfo)
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

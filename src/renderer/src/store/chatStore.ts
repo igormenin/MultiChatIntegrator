@@ -49,7 +49,7 @@ interface ChatState {
   setFontSize: (size: FontSize) => void
 }
 
-const MAX_MESSAGES = 500
+const MAX_MESSAGES = 200
 
 const initialConnections: Record<PlatformName, PlatformConnection> = {
   twitch: { platform: 'twitch', status: 'disconnected' },

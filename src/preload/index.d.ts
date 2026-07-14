@@ -74,6 +74,7 @@ interface CustomAPI {
   checkForUpdates: () => Promise<{ success: boolean; error?: string; result?: unknown }>
   installUpdate: () => Promise<void>
   getLogs: () => Promise<string[]>
+  exportAndEmailLogs: (userInfo: string) => Promise<{ success: boolean; error?: string }>
 }
 
 declare global {

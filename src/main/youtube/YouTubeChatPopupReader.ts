@@ -150,6 +150,7 @@ export class YouTubeChatPopupReader {
     let continuation = initialContinuation
     let retryCount = 0
     let pollIteration = 0
+    let hasLoggedEmpty = false
 
     while (!this.stopped) {
       pollIteration++
@@ -191,12 +192,15 @@ export class YouTubeChatPopupReader {
           onMessage(msg)
         }
 
-        console.log(
-          `[YouTube ChatPopup] Poll #${pollIteration}: ` +
-            `${newCount} novas, ${dupCount} duplicadas. ` +
-            `continuation=${continuation.substring(0, 30)}... ` +
-            `timeoutMs=${timeoutMs ?? 'n/a'}`
-        )
+        if (newCount > 0 || !hasLoggedEmpty) {
+          console.log(
+            `[YouTube ChatPopup] Poll #${pollIteration}: ` +
+              `${newCount} novas, ${dupCount} duplicadas. ` +
+              `continuation=${continuation.substring(0, 30)}... ` +
+              `timeoutMs=${timeoutMs ?? 'n/a'}`
+          )
+          hasLoggedEmpty = newCount === 0
+        }
 
         if (!nextContinuation) {
           console.warn(
