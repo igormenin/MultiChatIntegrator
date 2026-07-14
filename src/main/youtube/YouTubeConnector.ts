@@ -11,9 +11,14 @@ const YOUTUBE_API_BASE = 'https://www.googleapis.com/youtube/v3'
 
 const POLLING_MIN = parseInt(import.meta.env.MAIN_VITE_YOUTUBE_POLL_INTERVAL_MIN || '8', 10) * 1000
 const POLLING_MAX = parseInt(import.meta.env.MAIN_VITE_YOUTUBE_POLL_INTERVAL_MAX || '20', 10) * 1000
-const POLLING_THRESHOLD = parseInt(import.meta.env.MAIN_VITE_YOUTUBE_POLL_EMPTY_THRESHOLD || '4', 10)
-const POLLING_INCREMENT = parseInt(import.meta.env.MAIN_VITE_YOUTUBE_POLL_INCREMENT_STEP || '2', 10) * 1000
-const POLLING_DECREMENT = parseInt(import.meta.env.MAIN_VITE_YOUTUBE_POLL_DECREMENT_STEP || '2', 10) * 1000
+const POLLING_THRESHOLD = parseInt(
+  import.meta.env.MAIN_VITE_YOUTUBE_POLL_EMPTY_THRESHOLD || '4',
+  10
+)
+const POLLING_INCREMENT =
+  parseInt(import.meta.env.MAIN_VITE_YOUTUBE_POLL_INCREMENT_STEP || '2', 10) * 1000
+const POLLING_DECREMENT =
+  parseInt(import.meta.env.MAIN_VITE_YOUTUBE_POLL_DECREMENT_STEP || '2', 10) * 1000
 
 interface YouTubeLiveChatMessage {
   id: string
@@ -63,7 +68,7 @@ export class YouTubeConnector {
   private customEmojis: Map<string, string> = new Map()
 
   // Modo de ingestão de mensagens fixo em 'chat_popup'
-  private provider: 'chat_popup' = 'chat_popup'
+  private provider = 'chat_popup' as const
   private chatPopupReader: YouTubeChatPopupReader | null = null
 
   // Callbacks
@@ -80,10 +85,7 @@ export class YouTubeConnector {
   // ----------------------------------------------------------------
   // Conectar ao YouTube
   // ----------------------------------------------------------------
-  async connect(
-    channelOrVideoId: string,
-    provider: 'chat_popup' = 'chat_popup'
-  ): Promise<void> {
+  async connect(channelOrVideoId: string, provider: 'chat_popup' = 'chat_popup'): Promise<void> {
     this.provider = provider
     console.log(`[YouTube] Iniciando conexão com provider='${provider}'`)
     this.isStopped = false
@@ -92,7 +94,9 @@ export class YouTubeConnector {
     // Extrair ID se for uma URL completa do YouTube (suporta youtu.be, youtube.com/watch, youtube.com/live, shorts, etc)
     if (rawId.includes('youtube.com/') || rawId.includes('youtu.be/')) {
       // Regex robusto para pegar exatamente os 11 caracteres do ID em diferentes formatos de URL
-      const match = rawId.match(/(?:youtu\.be\/|v=|vi=|u\/\w\/|embed\/|live\/|shorts\/|\/v\/)([^#&?]{11})/)
+      const match = rawId.match(
+        /(?:youtu\.be\/|v=|vi=|u\/\w\/|embed\/|live\/|shorts\/|\/v\/)([^#&?]{11})/
+      )
       if (match && match[1]) {
         rawId = match[1]
       }
@@ -111,14 +115,18 @@ export class YouTubeConnector {
         if (!this.videoId) {
           // Sem ID e sem OAuth, não há como descobrir a live
           if (!this.tokens) {
-            throw new Error('Nenhum Video ID fornecido. Cole o ID ou URL da live para conectar via Chat Popup.')
+            throw new Error(
+              'Nenhum Video ID fornecido. Cole o ID ou URL da live para conectar via Chat Popup.'
+            )
           }
           // Com OAuth, tenta detectar a live ativa para pegar o videoId
           console.log('[YouTube] chat_popup: buscando live ativa do usuário autenticado...')
           const broadcastInfo = await this.fetchActiveBroadcast(this.tokens.accessToken)
           this.videoId = broadcastInfo.videoId
         }
-        console.log(`[YouTube] chat_popup: videoId=${this.videoId}. Pulando resolução de liveChatId.`)
+        console.log(
+          `[YouTube] chat_popup: videoId=${this.videoId}. Pulando resolução de liveChatId.`
+        )
       } else if (!this.videoId) {
         // official_api sem ID: detectar via OAuth
         if (!this.tokens) {
@@ -243,7 +251,9 @@ export class YouTubeConnector {
   private startPollingLoop(): void {
     // Modo chat_popup: delegar ao reader especializado (sem API oficial)
     if (this.provider === 'chat_popup') {
-      console.log(`[YouTube] Modo chat_popup ativo. Delegando leitura para YouTubeChatPopupReader. videoId=${this.videoId}`)
+      console.log(
+        `[YouTube] Modo chat_popup ativo. Delegando leitura para YouTubeChatPopupReader. videoId=${this.videoId}`
+      )
       this.chatPopupReader = new YouTubeChatPopupReader()
       void this.chatPopupReader
         .startReading(this.videoId, (msg) => this.onMessage?.(msg))

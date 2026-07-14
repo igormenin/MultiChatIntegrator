@@ -20,11 +20,13 @@ function App(): React.JSX.Element {
   const updateConnectionStatusRef = React.useRef(updateConnectionStatus)
   const updateStatsRef = React.useRef(updateStats)
   const setOverlayModeRef = React.useRef(setOverlayMode)
-  // Sincronizar refs sem re-disparar o useEffect
-  addMessageRef.current = addMessage
-  updateConnectionStatusRef.current = updateConnectionStatus
-  updateStatsRef.current = updateStats
-  setOverlayModeRef.current = setOverlayMode
+  // Sincronizar refs fora do render (useLayoutEffect) para satisfazer react-hooks/refs
+  React.useLayoutEffect(() => {
+    addMessageRef.current = addMessage
+    updateConnectionStatusRef.current = updateConnectionStatus
+    updateStatsRef.current = updateStats
+    setOverlayModeRef.current = setOverlayMode
+  })
 
   // Estados para o Auto-Updater
   const [updateStatus, setUpdateStatus] = useState<'idle' | 'downloading' | 'downloaded' | 'error'>(

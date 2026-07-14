@@ -24,9 +24,31 @@ export const LogModal: React.FC<LogModalProps> = ({ onClose }) => {
   }
 
   useEffect(() => {
-    void fetchLogs()
-    const interval = setInterval(() => void fetchLogs(), 2000)
-    return () => clearInterval(interval)
+    let cancelled = false
+
+    const loadLogs = (): void => {
+      window.api
+        .getLogs()
+        .then((result) => {
+          if (!cancelled) {
+            setLogs(result || [])
+            setIsLoading(false)
+          }
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setLogs(['[Erro ao carregar logs]'])
+            setIsLoading(false)
+          }
+        })
+    }
+
+    loadLogs()
+    const interval = setInterval(loadLogs, 2000)
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
   }, [])
 
   useEffect(() => {
@@ -92,11 +114,25 @@ export const LogModal: React.FC<LogModalProps> = ({ onClose }) => {
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             {/* Terminal icon */}
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#64748b" strokeWidth="2">
+            <svg
+              viewBox="0 0 24 24"
+              width="16"
+              height="16"
+              fill="none"
+              stroke="#64748b"
+              strokeWidth="2"
+            >
               <polyline points="4 17 10 11 4 5" />
               <line x1="12" y1="19" x2="20" y2="19" />
             </svg>
-            <span style={{ fontWeight: 700, fontSize: '13px', color: '#e2e8f0', letterSpacing: '0.3px' }}>
+            <span
+              style={{
+                fontWeight: 700,
+                fontSize: '13px',
+                color: '#e2e8f0',
+                letterSpacing: '0.3px'
+              }}
+            >
               Logs do Aplicativo
             </span>
             <span
@@ -172,7 +208,14 @@ export const LogModal: React.FC<LogModalProps> = ({ onClose }) => {
                 transition: 'all 0.15s'
               }}
             >
-              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <svg
+                viewBox="0 0 24 24"
+                width="13"
+                height="13"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+              >
                 <polyline points="23 4 23 10 17 10" />
                 <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
               </svg>
