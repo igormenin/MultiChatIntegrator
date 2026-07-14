@@ -476,10 +476,26 @@ export class YouTubeConnector {
   // ----------------------------------------------------------------
   async sendMessage(text: string): Promise<boolean> {
     this.tokens = await getValidTokens(this.store)
-    if (!this.tokens || !this.liveChatId) return false
+    if (!this.tokens) return false
+
+    // Resolve o liveChatId sob demanda (Lazy Loading) caso o usuário
+    // esteja usando o modo chat_popup que não o carrega na inicialização
+    if (!this.liveChatId && this.videoId) {
+      console.log(`[YouTube Send] liveChatId não definido. Resolvendo via API para o vídeo: ${this.videoId}`)
+      try {
+        this.liveChatId = await this.resolveLiveChatId(this.videoId)
+      } catch (err) {
+        console.error('[YouTube Send] Erro ao resolver liveChatId no envio:', err)
+      }
+    }
+
+    if (!this.liveChatId) {
+      console.error('[YouTube Send] Não foi possível obter o liveChatId para enviar a mensagem.')
+      return false
+    }
 
     try {
-      const url = `${YOUTUBE_API_BASE}/liveChat/messages?part=snippet&key=${API_KEY}`
+      const url = `${YOUTUBE_API_BASE}/liveChat/messages?part=snippet`
       const body = JSON.stringify({
         snippet: {
           liveChatId: this.liveChatId,
