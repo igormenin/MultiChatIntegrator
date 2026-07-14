@@ -43,7 +43,7 @@ export const LogModal: React.FC<LogModalProps> = ({ onClose }) => {
 
       const result = await window.api.exportAndEmailLogs(userInfo)
       if (result.success) {
-        alert('Logs exportados e enviados por e-mail com sucesso!')
+        alert('Logs exportados e enviados com sucesso para o desenvolvedor do aplicativo!')
       } else {
         alert('Erro ao enviar e-mail:\n' + result.error)
       }
