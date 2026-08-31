@@ -47,7 +47,10 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen }) => {
   const [saveYoutubeVideoId, setSaveYoutubeVideoId] = useState(false)
   const [saveKickSlug, setSaveKickSlug] = useState(false)
 
-
+  // Estados do Modal de Confirmação do YouTube
+  const [showYoutubeModal, setShowYoutubeModal] = useState(false)
+  const [youtubeModalChannel, setYoutubeModalChannel] = useState('')
+  const [youtubeModalPendingId, setYoutubeModalPendingId] = useState('')
 
   // Verificar status de auth do Twitch ao montar
   useEffect(() => {
@@ -217,7 +220,17 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen }) => {
         if (!youtubeVideoId.trim() && youtubeAuthStep !== 'authenticated') return
         const channelInfo = youtubeVideoId.trim() || 'Auto-detecção'
         updateConnectionStatus('youtube', 'connecting', channelInfo)
-        await window.api.connectYouTube(youtubeVideoId.trim(), saveYoutubeVideoId, youtubeProvider)
+        const res = await window.api.connectYouTube(youtubeVideoId.trim(), saveYoutubeVideoId, youtubeProvider)
+        if (res && !res.success) {
+          if (res.requiresConfirmation) {
+            updateConnectionStatus('youtube', 'disconnected')
+            setYoutubeModalChannel(res.channelTitle || 'Desconhecido')
+            setYoutubeModalPendingId(youtubeVideoId.trim())
+            setShowYoutubeModal(true)
+          } else {
+            updateConnectionStatus('youtube', 'disconnected', undefined, res.error || 'Erro na validação do vídeo.')
+          }
+        }
       } else if (platform === 'kick') {
         if (kickAuthStep !== 'authenticated') return
         const channelInfo = kickLogin || 'Auto-detecção'
@@ -237,6 +250,19 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen }) => {
       updateConnectionStatus(platform, 'disconnected')
     } catch (err) {
       console.error(`Erro ao desconectar ${platform}:`, err)
+    }
+  }
+
+  const handleForceConnectYoutube = async (): Promise<void> => {
+    setShowYoutubeModal(false)
+    try {
+      const channelInfo = youtubeModalPendingId || 'Auto-detecção'
+      updateConnectionStatus('youtube', 'connecting', channelInfo)
+      await window.api.connectYouTube(youtubeModalPendingId, saveYoutubeVideoId, youtubeProvider, true)
+    } catch (err: unknown) {
+      console.error(`Erro ao forçar conexão youtube:`, err)
+      const errorMsg = err instanceof Error ? err.message : 'Erro desconhecido'
+      updateConnectionStatus('youtube', 'disconnected', undefined, errorMsg)
     }
   }
 
@@ -1110,6 +1136,87 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen }) => {
         </div>
       </div>
 
+
+      {/* Modal Customizado do YouTube */}
+      {showYoutubeModal && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            backdropFilter: 'blur(4px)'
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: 'var(--bg-panel)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '8px',
+              padding: '20px',
+              width: '320px',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#F59E0B" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <h3 style={{ margin: 0, color: '#ffffff', fontSize: '16px', fontWeight: 600 }}>Aviso de Segurança</h3>
+            </div>
+            
+            <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '13px', lineHeight: 1.5 }}>
+              O ID da Live inserido pertence ao canal <strong style={{ color: 'var(--color-youtube)' }}>{youtubeModalChannel}</strong>, que é diferente da sua conta conectada. 
+              <br/><br/>
+              Deseja conectar neste chat mesmo assim?
+            </p>
+
+            <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
+              <button
+                onClick={() => setShowYoutubeModal(false)}
+                style={{
+                  flex: 1,
+                  padding: '8px 0',
+                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid var(--border-color)',
+                  color: 'var(--text-secondary)',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontWeight: 500,
+                  fontSize: '13px'
+                }}
+              >
+                Não, Cancelar
+              </button>
+              <button
+                onClick={handleForceConnectYoutube}
+                style={{
+                  flex: 1,
+                  padding: '8px 0',
+                  backgroundColor: 'var(--color-youtube)',
+                  border: 'none',
+                  color: '#fff',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  fontSize: '13px'
+                }}
+              >
+                Sim, Conectar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   )

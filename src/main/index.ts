@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, net } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import Store from 'electron-store'
@@ -502,12 +502,9 @@ app.whenReady().then(() => {
   })
 
   // 3. Conectar YouTube (Real)
-  ipcMain.handle('youtube:connect', async (_event, videoId: string, save: boolean) => {
-    const resolvedProvider = 'chat_popup'
-    console.log(`Conectando YouTube: ${videoId || 'detecção automática'}, save: ${save}, provider: ${resolvedProvider}`)
-    store.set('saveYoutubeVideoId', save)
-    store.set('youtubeVideoId', save ? videoId : '')
-    store.set('youtubeProvider', resolvedProvider)
+  ipcMain.handle('youtube:connect', async (_event, videoId: string, save: boolean, provider: string, force?: boolean) => {
+    const resolvedProvider = provider || 'chat_popup'
+    console.log(`Conectando YouTube: ${videoId || 'detecção automática'}, save: ${save}, provider: ${resolvedProvider}, force: ${force}`)
 
     youtubeConnector.onStatusChange = (status, info, error): void => {
       mainWindow?.webContents.send('chat:status', 'youtube', status, info, error)
@@ -521,7 +518,52 @@ app.whenReady().then(() => {
       mainWindow?.webContents.send('chat:stats', 'youtube', viewers, likes)
     }
 
-    void youtubeConnector.connect(videoId, resolvedProvider)
+    let rawId = (videoId || '').trim()
+    if (rawId) {
+      if (rawId.includes('youtube.com/') || rawId.includes('youtu.be/')) {
+        const match = rawId.match(/(?:youtu\.be\/|v=|vi=|u\/\w\/|embed\/|live\/|shorts\/|\/v\/)([^#&?]{11})/)
+        if (match && match[1]) {
+          rawId = match[1]
+        }
+      }
+
+      if (!force && rawId.length === 11) {
+        try {
+          const API_KEY = import.meta.env.MAIN_VITE_YOUTUBE_API_KEY || ''
+          const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet,liveStreamingDetails&id=${rawId}&key=${API_KEY}`
+          const res = await net.fetch(url)
+          if (res.ok) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const data = (await res.json()) as any
+            if (!data.items || data.items.length === 0) {
+              return { success: false, error: 'O ID ou URL do vídeo informado é inválido ou o vídeo não existe.' }
+            }
+            const item = data.items[0]
+            if (!item.liveStreamingDetails || !item.liveStreamingDetails.activeLiveChatId) {
+              return { success: false, error: 'O vídeo informado não é uma transmissão Ao Vivo ativa.' }
+            }
+
+            const tokens = await getValidYouTubeTokens(anyStore)
+            if (tokens && tokens.channelId) {
+              if (item.snippet.channelId !== tokens.channelId) {
+                return { success: false, requiresConfirmation: true, channelTitle: item.snippet.channelTitle }
+              }
+            }
+          } else {
+            console.warn(`[YouTube Validation] API error: ${res.status}`)
+          }
+        } catch (err) {
+          console.warn(`[YouTube Validation] Network error:`, err)
+        }
+      }
+    }
+
+    store.set('saveYoutubeVideoId', save)
+    store.set('youtubeVideoId', save ? videoId : '')
+    store.set('youtubeProvider', resolvedProvider)
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    void youtubeConnector.connect(rawId, resolvedProvider as any)
     return { success: true }
   })
 

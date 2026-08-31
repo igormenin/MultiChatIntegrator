@@ -25,7 +25,12 @@ interface CustomAPI {
   onUpdateError: (callback: (error: string) => void) => () => void
 
   connectTwitch: (channel: string, save: boolean) => Promise<void>
-  connectYouTube: (videoId: string, save: boolean, provider: string) => Promise<void>
+  connectYouTube: (
+    videoId: string,
+    save: boolean,
+    provider: string,
+    force?: boolean
+  ) => Promise<{ success: boolean; requiresConfirmation?: boolean; channelTitle?: string; error?: string }>
   connectKick: (slug: string, save: boolean) => Promise<void>
   getSettings: () => Promise<{
     twitchChannel: string
