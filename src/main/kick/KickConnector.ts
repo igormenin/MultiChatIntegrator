@@ -318,34 +318,10 @@ export class KickConnector {
   private async pollStats(): Promise<void> {
     if (!this.channelSlug || this.isStopped) return
 
-    // Garantir tokens
-    this.tokens = await getValidTokens(this.store)
-    if (!this.tokens) return
-
-    // Consultar API de livestreams oficial
-    try {
-      const url = `${KICK_API_BASE}/livestreams`
-      const res = await net.fetch(url, {
-        headers: { Authorization: `Bearer ${this.tokens.accessToken}` }
-      })
-
-      if (res.ok) {
-        const data = (await res.json()) as {
-          data?: Array<{
-            viewer_count?: string | number
-          }>
-          viewer_count?: string | number
-        }
-        const streamData = Array.isArray(data.data) ? data.data[0] : data
-        const viewers = parseInt(String(streamData?.viewer_count || '0'), 10)
-        this.onViewerCount?.(viewers)
-        return
-      }
-    } catch {
-      // Ignorar e tentar fallback
-    }
-
-    // Fallback: Consultar API v2 do canal que retorna info da live atual
+    // Consultar a API v2 do canal específico (slug) para obter viewers corretos.
+    // NOTA: O endpoint /public/v1/livestreams foi removido pois retorna a lista global
+    // da plataforma (os canais mais populares), não o canal conectado. Isso causava
+    // a exibição de milhares de viewers de outros streamers.
     try {
       const url = `https://kick.com/api/v2/channels/${encodeURIComponent(this.channelSlug)}`
       const res = await net.fetch(url, {
@@ -365,11 +341,11 @@ export class KickConnector {
           const viewers = parseInt(String(data.livestream.viewer_count || '0'), 10)
           this.onViewerCount?.(viewers)
         } else {
-          this.onViewerCount?.(0) // offline
+          this.onViewerCount?.(0) // canal offline
         }
       }
     } catch {
-      // Silencioso
+      // Silencioso — próximo ciclo de 60s tentará novamente
     }
   }
 
