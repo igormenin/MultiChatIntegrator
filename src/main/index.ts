@@ -1,5 +1,8 @@
 import { app, shell, BrowserWindow, ipcMain, net } from 'electron'
 import { join } from 'path'
+import * as fs from 'fs'
+import * as os from 'os'
+import nodemailer from 'nodemailer'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import Store from 'electron-store'
 import { autoUpdater } from 'electron-updater'
@@ -709,10 +712,6 @@ app.whenReady().then(() => {
   // Exportar logs para TXT e enviar por E-mail
   ipcMain.handle('logs:export-email', async (_, userInfo: string) => {
     try {
-      const nodemailer = require('nodemailer')
-      const fs = require('fs')
-      const path = require('path')
-      const os = require('os')
 
       const host = import.meta.env.MAIN_VITE_SMTP_HOST || process.env.SMTP_HOST
       const port = Number(import.meta.env.MAIN_VITE_SMTP_PORT || process.env.SMTP_PORT) || 587
@@ -729,7 +728,7 @@ app.whenReady().then(() => {
 
       // Criar o arquivo temporário
       const logContent = appLogs.join('\n')
-      const tempFilePath = path.join(os.tmpdir(), `multichat_logs_${Date.now()}.txt`)
+      const tempFilePath = join(os.tmpdir(), `multichat_logs_${Date.now()}.txt`)
       fs.writeFileSync(tempFilePath, logContent, 'utf8')
 
       // Configurar SMTP e enviar email
